@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'my_stories.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -483,23 +484,23 @@ class ProfilePage extends StatelessWidget {
 }
 
 // Placeholder for My Stories Page
-class MyStoriesPage extends StatelessWidget {
-  const MyStoriesPage({super.key});
+// class MyStoriesPage extends StatelessWidget {
+//   const MyStoriesPage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Stories'),
-        backgroundColor: const Color(0xFFFF6B6B),
-        foregroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Text(
-          'My Stories Page',
-          style: TextStyle(fontSize: 24),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('My Stories'),
+//         backgroundColor: const Color(0xFFFF6B6B),
+//         foregroundColor: Colors.white,
+//       ),
+//       body: const Center(
+//         child: Text(
+//           'My Stories Page',
+//           style: TextStyle(fontSize: 24),
+//         ),
+//       ),
+//     );
+//   }
+// }
