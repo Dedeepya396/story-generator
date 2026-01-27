@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'screens/profile_page.dart';
 import 'screens/home_page.dart';
+import 'screens/character_selection_page.dart';
+
 
 void main() {
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -21,7 +24,10 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => HomePage(),        // home page
         '/profile': (context) => ProfilePage(), // profile page
+        '/select-characters': (context) => const CharacterSelectionPage(),
+
       },
     );
   }
 }
+

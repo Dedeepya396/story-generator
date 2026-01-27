@@ -47,6 +47,22 @@ class HomePage extends StatelessWidget {
                               ),
                               SizedBox(width: 40),
                               TextButton(
+                                  onPressed: () {
+                                    Navigator.pushNamed(context, '/select-characters');
+                                  },
+                                  child: const Text(
+                                    'Create Story',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              
+
+                              SizedBox(width: 40),
+                              TextButton(
                                 onPressed: () =>
                                     Navigator.pushNamed(context, '/about'),
                                 child: Text(
