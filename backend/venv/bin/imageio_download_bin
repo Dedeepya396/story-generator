@@ -1,4 +1,4 @@
-#!/home/vaishnavimiryala/Desktop/Sem-6/BTP/v2/story-generator/backend/venv/bin/python3
+#!/home/samaharshika/Documents/BTP/story-generator/backend/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
