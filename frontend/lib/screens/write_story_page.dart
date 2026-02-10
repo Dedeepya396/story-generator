@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'story_display_page.dart';
 class WriteStoryPage extends StatefulWidget {
   final List<Map<String, String>> selectedCharacters;
 
@@ -139,23 +139,31 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
-                  if (_storyController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Story cannot be empty'),
-                      ),
-                    );
-                    return;
-                  }
+                  // if (_storyController.text.trim().isEmpty) {
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     const SnackBar(
+                  //       content: Text('Story cannot be empty'),
+                  //     ),
+                  //   );
+                  //   return;
+                  // }
 
-                  // 🔹 For now just show success
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Story submitted successfully!'),
+                  // // 🔹 For now just show success
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //   const SnackBar(
+                  //     content: Text('Story submitted successfully!'),
+                  //   ),
+                  // );
+
+                  // Navigator.pop(context);
+                  // final storyText = _controller.text; // or however you get the story
+                  final storyText = _storyController.text;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StoryDisplayPage(storyText: storyText),
                     ),
                   );
-
-                  Navigator.pop(context);
                 },
                 child: const Text(
                   'Submit Story',
