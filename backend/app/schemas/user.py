@@ -18,3 +18,7 @@ class UserSignup(BaseModel):
     phone: Optional[str] = None
     role: Literal["teacher", "student"]
     profile: Optional[Profile] = None
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
