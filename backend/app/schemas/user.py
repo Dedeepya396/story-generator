@@ -14,7 +14,7 @@ class Profile(BaseModel):
 class UserSignup(BaseModel):
     fullName: str
     email: EmailStr
-    password: str = Field(min_length=6,max_length=72)
+    password: str = Field(min_length=6)
     phone: Optional[str] = None
     role: Literal["teacher", "student"]
     profile: Optional[Profile] = None
