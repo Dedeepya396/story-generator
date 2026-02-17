@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'story_details_page.dart';
+import 'navbar.dart';
 
 class MyStoriesPage extends StatefulWidget {
   const MyStoriesPage({super.key});
@@ -49,6 +50,7 @@ class _MyStoriesPageState extends State<MyStoriesPage> with RouteAware {
     }).toList();
 
     return Scaffold(
+      appBar: Navbar(currentPage: 'home'),
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(

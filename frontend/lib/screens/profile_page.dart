@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'my_stories.dart';
+import 'navbar.dart'; // Import the navbar widget
+
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -7,6 +9,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: Navbar(currentPage: 'home'),
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: LayoutBuilder(

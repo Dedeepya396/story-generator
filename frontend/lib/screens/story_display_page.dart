@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:html' as html; // Only for web!
+import 'navbar.dart';
 
 class StoryDisplayPage extends StatefulWidget {
   final String storyText;
@@ -75,6 +76,7 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(
+        appBar: Navbar(currentPage: 'home'),
         body: Center(child: CircularProgressIndicator()),
       );
     }

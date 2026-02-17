@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'navbar.dart';
 
 class StoryDetailPage extends StatelessWidget {
   final String title;
@@ -13,7 +14,7 @@ class StoryDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: Navbar(currentPage: 'home'),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
