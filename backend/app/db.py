@@ -10,3 +10,4 @@ MONGO_DB = os.getenv("MONGO_DB", "story_generator")
 # Async Motor client and db object for import elsewhere
 client = AsyncIOMotorClient(MONGO_URI)
 db = client[MONGO_DB]
+users_collection = db["users"]
