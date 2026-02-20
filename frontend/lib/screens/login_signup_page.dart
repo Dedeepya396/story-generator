@@ -252,6 +252,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -259,6 +260,11 @@ class LoginPage extends StatefulWidget {
   State createState() => _LoginPageState();
 }
 
+
+Future<void> saveLoginState() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('isLoggedIn', true);
+}
 class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
   bool isLoginMode = true;
@@ -320,7 +326,6 @@ class _LoginPageState extends State<LoginPage>
       emailController.text.trim(),
       passwordController.text.trim(),
     );
-    print("HAHA");
   } else {
     if (selectedRole == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -336,9 +341,9 @@ class _LoginPageState extends State<LoginPage>
       selectedRole!,
     );
   }
-  print("=====================Login Result: $result");
   if (result["success"]) {
     Navigator.pushReplacementNamed(context, '/home');
+    saveLoginState();
   } else {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result["message"] ?? "Error")),
