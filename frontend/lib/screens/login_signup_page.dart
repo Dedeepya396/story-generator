@@ -251,7 +251,7 @@
 
 
 import 'package:flutter/material.dart';
-
+import '../services/auth_service.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -301,9 +301,50 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
-  void handleSubmit() {
-    Navigator.pushReplacementNamed(context, '/home');
+  // void handleSubmit() {
+  //   Navigator.pushReplacementNamed(context, '/home');
+  // }
+  Future<void> handleSubmit() async {
+  if (emailController.text.isEmpty ||
+      passwordController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please fill all fields")),
+    );
+    return;
   }
+
+  Map<String, dynamic> result;
+
+  if (isLoginMode) {
+    result = await AuthService.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
+    print("HAHA");
+  } else {
+    if (selectedRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a role")),
+      );
+      return;
+    }
+
+    result = await AuthService.signup(
+      nameController.text.trim(),
+      emailController.text.trim(),
+      passwordController.text.trim(),
+      selectedRole!,
+    );
+  }
+  print("=====================Login Result: $result");
+  if (result["success"]) {
+    Navigator.pushReplacementNamed(context, '/home');
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result["message"] ?? "Error")),
+    );
+  }
+}
 
   void toggleMode() {
     setState(() {
