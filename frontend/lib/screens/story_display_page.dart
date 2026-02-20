@@ -1,119 +1,3 @@
-// import 'dart:typed_data';
-// import 'package:flutter/material.dart';
-// import 'package:video_player/video_player.dart';
-// import 'package:http/http.dart' as http;
-// import 'dart:convert';
-// import 'dart:html' as html; // Only for web!
-// import 'navbar.dart';
-
-// class StoryDisplayPage extends StatefulWidget {
-//   final String storyText;
-
-//   const StoryDisplayPage({super.key, required this.storyText});
-
-//   @override
-//   State<StoryDisplayPage> createState() => _StoryDisplayPageState();
-// }
-
-// class _StoryDisplayPageState extends State<StoryDisplayPage> {
-//   VideoPlayerController? _controller;
-//   bool _loading = true;
-//   String? _error;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _generateAndLoadVideo();
-//   }
-
-//   Future<void> _generateAndLoadVideo() async {
-//     setState(() {
-//       _loading = true;
-//       _error = null;
-//     });
-//     try {
-//       final uri = Uri.parse('http://127.0.0.1:8000/video/generate');
-//       final response = await http.post(
-//         uri,
-//         headers: {'Content-Type': 'application/json'},
-//         body: jsonEncode({'story': widget.storyText}),
-//       );
-
-//       if (response.statusCode == 200) {
-//         final bytes = response.bodyBytes;
-//         // Create a Blob and Object URL for the video
-//         final blob = html.Blob([bytes]);
-//         final url = html.Url.createObjectUrlFromBlob(blob);
-
-//         _controller = VideoPlayerController.network(url)
-//           ..initialize().then((_) {
-//             setState(() {});
-//             _controller!.play();
-//           });
-//       } else {
-//         setState(() {
-//           _error = 'Failed to generate video. (${response.statusCode})';
-//         });
-//       }
-//     } catch (e) {
-//       setState(() {
-//         _error = 'Error: $e';
-//       });
-//     } finally {
-//       setState(() {
-//         _loading = false;
-//       });
-//     }
-//   }
-
-//   @override
-//   void dispose() {
-//     _controller?.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     if (_loading) {
-//       return const Scaffold(
-//         appBar: Navbar(currentPage: 'home'),
-//         body: Center(child: CircularProgressIndicator()),
-//       );
-//     }
-//     if (_error != null) {
-//       return Scaffold(
-//         body: Center(child: Text(_error!)),
-//       );
-//     }
-//     if (_controller != null && _controller!.value.isInitialized) {
-//       return Scaffold(
-//         appBar: AppBar(title: const Text('Your Story Video')),
-//         body: Center(
-//           child: AspectRatio(
-//             aspectRatio: _controller!.value.aspectRatio,
-//             child: VideoPlayer(_controller!),
-//           ),
-//         ),
-//         floatingActionButton: FloatingActionButton(
-//           onPressed: () {
-//             setState(() {
-//               _controller!.value.isPlaying
-//                   ? _controller!.pause()
-//                   : _controller!.play();
-//             });
-//           },
-//           child: Icon(
-//             _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-//           ),
-//         ),
-//       );
-//     }
-//     return const Scaffold(
-//       body: Center(child: Text('Video could not be loaded.')),
-//     );
-//   }
-// }
-
 import 'dart:convert';
 import 'dart:html' as html; // Only for web
 import 'package:flutter/material.dart';
@@ -121,11 +5,14 @@ import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 import 'navbar.dart';
 
+
 class StoryDisplayPage extends StatefulWidget {
-  final String storyText;
+  final String videoUrl;
 
-  const StoryDisplayPage({super.key, required this.storyText});
-
+  const StoryDisplayPage({
+    super.key,
+    required this.videoUrl,
+  });
   @override
   State<StoryDisplayPage> createState() => _StoryDisplayPageState();
 }
@@ -143,7 +30,25 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
   @override
   void initState() {
     super.initState();
-    _generateAndLoadVideo();
+
+    _controller = VideoPlayerController.network(widget.videoUrl)
+      ..addListener(_videoListener)
+      ..setLooping(false)
+      ..initialize().then((_) {
+        if (!mounted) return;
+
+        setState(() {
+          _loading = false;
+          _duration = _controller!.value.duration;
+        });
+
+        _controller!.play();
+      }).catchError((e) {
+        setState(() {
+          _error = "Error loading video";
+          _loading = false;
+        });
+      });
   }
 
   void _videoListener() {
@@ -160,53 +65,6 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
     });
   }
 
-  Future<void> _generateAndLoadVideo() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      final uri = Uri.parse('http://127.0.0.1:8000/video/generate');
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'story': widget.storyText}),
-      );
-
-      if (response.statusCode == 200) {
-        final bytes = response.bodyBytes;
-
-        final blob = html.Blob([bytes]);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-
-        _controller = VideoPlayerController.network(url)
-          ..addListener(_videoListener)
-          ..setLooping(false)
-          ..initialize().then((_) {
-            if (!mounted) return;
-            setState(() {
-              _duration = _controller!.value.duration;
-              _loading = false;
-            });
-            _controller!.play();
-            setState(() {
-              _isPlaying = true;
-            });
-          });
-      } else {
-        setState(() {
-          _error = 'Failed to generate video. (${response.statusCode})';
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Error: $e';
-        _loading = false;
-      });
-    }
-  }
 
   void _togglePlayPause() {
     final controller = _controller;
@@ -440,14 +298,6 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                // const Text(
-                //   'Watch, pause, and replay your adventure.',
-                //   textAlign: TextAlign.center,
-                //   style: TextStyle(
-                //     fontSize: 14,
-                //     color: Color(0xFF7A4E75),
-                //   ),
-                // ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: LayoutBuilder(
