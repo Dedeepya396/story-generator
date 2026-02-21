@@ -6,6 +6,7 @@ import 'character_selection_page.dart';
 import 'navbar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../services/story_serviceFront.dart';
 
 class WriteStoryPage extends StatefulWidget {
   final List<Map<String, String>> selectedCharacters;
@@ -21,7 +22,9 @@ class WriteStoryPage extends StatefulWidget {
 class _WriteStoryPageState extends State<WriteStoryPage> {
   final TextEditingController _storyController = TextEditingController();
   final List<Uint8List> _uploadedImageBytes = [];
-  
+  final TextEditingController _languageController = TextEditingController();
+  bool _isPublic = true;
+
   // ✅ FIX: Remove 'late', initialize with empty list so it's never uninitialized
   List<Map<String, String>> _selectedCharacters = [];
 
@@ -34,6 +37,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
   @override
   void dispose() {
     _storyController.dispose();
+    _languageController.dispose();
     super.dispose();
   }
 
@@ -73,14 +77,14 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
-  Future<String?> _generateVideoFromBackend(String storyText) async {
+  Future<String?> _generateVideoFromBackend(String storyText, String lang) async {
     try {
       final uri = Uri.parse('http://127.0.0.1:8000/video/generate');
 
       final response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'story': storyText}),
+        body: jsonEncode({'story': storyText, 'language': lang}),
       );
 
       if (response.statusCode == 200) {
@@ -94,6 +98,31 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
+  Future<Map<String, dynamic>> _submitStory(String? videoUrl) async {
+    final storyText = _storyController.text.trim();
+    final language = _languageController.text.trim();
+
+    if (storyText.isEmpty) {
+      return {'success': false, 'message': 'Please write your story before submitting'};
+    }
+
+    final title = storyText.isNotEmpty
+        ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText)
+        : 'Untitled';
+    final genre = "General";
+
+    final res = await StoryService.createStory(
+      title: title,
+      description: storyText,
+      language: language.isEmpty ? null : language,
+      displayFlag: _isPublic,
+      genre: genre,
+      videoUrl: videoUrl,
+    );
+
+    return res;
+  }
+ // ...existing code...
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -290,6 +319,36 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
 
             const SizedBox(height: 20),
             const Text(
+              'Language',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _languageController,
+              decoration: InputDecoration(
+                hintText: 'Enter language (e.g., English, Hindi)',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+              ),
+            ),
+          
+            
+              SwitchListTile(
+                title: const Text('Public'),
+                // subtitle: const Text(_isPublic ? 'Public (visible to others)' : 'Private (only you)'),
+                value: _isPublic,
+                onChanged: (val) {
+                  setState(() {
+                    _isPublic = val;
+                  });
+                },
+              ),
+
+            const SizedBox(height: 20),
+            const Text(
               'Your Story',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
@@ -321,7 +380,6 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                 onPressed: () async {
                   final storyText = _storyController.text.trim();
                   if (storyText.isEmpty) return;
-
                   showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -330,11 +388,20 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                     ),
                   );
 
-                  final videoUrl = await _generateVideoFromBackend(storyText);
+                  final videoUrl = await _generateVideoFromBackend(storyText, _languageController.text.trim());
 
                   Navigator.pop(context); // remove loading dialog
 
-                  if (videoUrl != null) {
+                  if(videoUrl == null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Failed to generate video")),
+                    );
+                    return;
+                  }
+
+                  final res = await _submitStory(videoUrl);
+
+                  if(res['success'] == true){
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -343,9 +410,21 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Failed to generate video")),
+                      SnackBar(content: Text(res['message'] ?? 'Failed to create story')),
                     );
                   }
+                  // if (videoUrl != null) {
+                  //   Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(
+                  //       builder: (context) => StoryDisplayPage(videoUrl: videoUrl),
+                  //     ),
+                  //   );
+                  // } else {
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     const SnackBar(content: Text("Failed to generate video")),
+                  //   );
+                  // }
                 },
                 child: const Text(
                   'Submit Story',

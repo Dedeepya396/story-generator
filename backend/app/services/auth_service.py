@@ -104,5 +104,10 @@ async def user_login(user: UserLogin) -> dict:
     return {
         "message": "Login successful",
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user":{
+            "id": str(existing_user["_id"]),
+            "email": existing_user.get("email"),
+            "name": existing_user.get("fullName")
+        }
     }

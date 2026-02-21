@@ -7,6 +7,8 @@ class StoryCreate(BaseModel):
     description: Optional[str] = None
     language: Optional[str] = None
     genre: Optional[str] = None
+    videoUrl: Optional[str] = None
+    displayFlag: Optional[bool] = True
 
 class StoryOut(BaseModel):
     id: Optional[str] = Field(None, alias="id")

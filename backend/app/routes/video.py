@@ -22,7 +22,6 @@ def generate_video(request: StoryRequest):
 
     # Upload to Cloudinary
     video_url = upload_video(output_path, file_name=video_id)
-
     # (Optional) Delete local file after upload
     if os.path.exists(output_path):
         os.remove(output_path)
