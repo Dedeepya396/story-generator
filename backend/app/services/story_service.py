@@ -38,8 +38,16 @@ async def get_story_by_id(story_id: str) -> Optional[dict]:
             out[k] = v.isoformat()
     return out
 
+
 async def list_stories_by_user(user_id: str) -> List[dict]:
-    docs = db["stories"].find({"userId": ObjectId(user_id)})
+    # try ObjectId query first
+    query = {}
+    if ObjectId.is_valid(user_id):
+        query = {"$or": [{"userId": ObjectId(user_id)}, {"userId": user_id}]}
+    else:
+        query = {"userId": user_id}
+
+    docs = db["stories"].find(query)
     results = []
     async for d in docs:
         out = stringify_object_ids(d)
@@ -49,4 +57,20 @@ async def list_stories_by_user(user_id: str) -> List[dict]:
             if isinstance(v, datetime.datetime):
                 out[k] = v.isoformat()
         results.append(out)
+    print(f"Found {len(results)} stories for userId={user_id}")
+    print(results)
     return results
+
+
+# async def list_stories_by_user(user_id: str) -> List[dict]:
+#     docs = db["stories"].find({"userId": ObjectId(user_id)})
+#     results = []
+#     async for d in docs:
+#         out = stringify_object_ids(d)
+#         out["id"] = out.pop("_id")
+#         for k in ("createdAt", "updatedAt"):
+#             v = out.get(k)
+#             if isinstance(v, datetime.datetime):
+#                 out[k] = v.isoformat()
+#         results.append(out)
+#     return results

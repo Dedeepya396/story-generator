@@ -17,6 +17,8 @@ class StoryOut(BaseModel):
     description: Optional[str] = None
     language: Optional[str] = None
     genre: Optional[str] = None
+    videoUrl: Optional[str] = None
+    displayFlag: Optional[bool] = True
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 
