@@ -15,7 +15,7 @@ cloudinary.config(
 
 def upload_video(file_path, file_name=None):
     try:
-        print("Uploading...")
+        print("Uploading video...")
         
         # 2. Upload the video
         # 'resource_type' must be set to 'video'
@@ -37,5 +37,25 @@ def upload_video(file_path, file_name=None):
         return response['secure_url']
 
     except Exception as e:
-        print("Error during upload:", e)
+        print("Error during video upload:", e)
+        return None
+
+def upload_image(file_path, file_name=None):
+    try:
+        print("Uploading image...")
+        
+        response = cloudinary.uploader.upload(
+            file_path,
+            resource_type="image",
+            public_id=file_name or "my_uploaded_image",
+        )
+        
+        print("Image Upload Successful!")
+        print("Public ID:", response['public_id'])
+        print("Image URL:", response['secure_url'])
+        return response['secure_url']
+
+    except Exception as e:
+        print("Error during image upload:", e)
+        return None
 

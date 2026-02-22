@@ -565,13 +565,34 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
   Widget _buildCard(Map<String, dynamic> s) {
     final title = (s['title'] ?? 'Untitled').toString();
     final videoUrl = (s['videoUrl'] ?? '').toString();
+    final coverUrl = (s['coverUrl'] ?? '').toString();
 
-    final cover = Image.asset(
-      'assets/images/story3.jpeg',
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-    );
+    Widget cover;
+    if (coverUrl.isNotEmpty) {
+      cover = Image.network(
+        coverUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
+        errorBuilder: (context, error, stackTrace) => Image.asset(
+          'assets/images/story3.jpeg',
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        ),
+      );
+    } else {
+      cover = Image.asset(
+        'assets/images/story3.jpeg',
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
 
     return GestureDetector(
       onTap: () {

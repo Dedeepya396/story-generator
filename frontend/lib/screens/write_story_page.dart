@@ -77,7 +77,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
-  Future<String?> _generateVideoFromBackend(String storyText, String lang) async {
+  Future<Map<String, String?>?> _generateVideoFromBackend(String storyText, String lang) async {
     try {
       final uri = Uri.parse('http://127.0.0.1:8000/video/generate');
       print(uri);
@@ -89,7 +89,10 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['video_url']; // Cloudinary URL
+        return {
+          'video_url': data['video_url'],
+          'cover_url': data['cover_url'],
+        };
       } else {
         return null;
       }
@@ -98,7 +101,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
-  Future<Map<String, dynamic>> _submitStory(String? videoUrl) async {
+  Future<Map<String, dynamic>> _submitStory(String? videoUrl, String? coverUrl) async {
     final storyText = _storyController.text.trim();
     final language = _languageController.text.trim();
 
@@ -118,6 +121,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
       displayFlag: _isPublic,
       genre: genre,
       videoUrl: videoUrl,
+      coverUrl: coverUrl,
     );
 
     return res;
@@ -388,24 +392,27 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                     ),
                   );
 
-                  final videoUrl = await _generateVideoFromBackend(storyText, _languageController.text.trim());
+                  final videoResults = await _generateVideoFromBackend(storyText, _languageController.text.trim());
 
                   Navigator.pop(context); // remove loading dialog
 
-                  if(videoUrl == null){
+                  if(videoResults == null || videoResults['video_url'] == null){
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Failed to generate video")),
                     );
                     return;
                   }
 
-                  final res = await _submitStory(videoUrl);
+                  final videoUrl = videoResults['video_url'];
+                  final coverUrl = videoResults['cover_url'];
+
+                  final res = await _submitStory(videoUrl, coverUrl);
 
                   if(res['success'] == true){
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => StoryDisplayPage(videoUrl: videoUrl),
+                        builder: (context) => StoryDisplayPage(videoUrl: videoUrl!),
                       ),
                     );
                   } else {

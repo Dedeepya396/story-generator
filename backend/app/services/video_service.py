@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import shutil
 from typing import List, Dict
 
 from dotenv import load_dotenv
@@ -9,9 +10,6 @@ from groq import Groq
 from huggingface_hub import InferenceClient
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 from mistralai import Mistral
-import json
-from typing import List, Dict
-import os
 
 client = Mistral(api_key=os.environ["MISTRAL_API_KEY"])
 load_dotenv()
@@ -100,13 +98,15 @@ def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Di
 
     json_text = raw_content[start:end]
     return json.loads(json_text)
-def generate_story_video(story: str, output_path: str) -> None:
+def generate_story_video(story: str, output_path: str) -> str:
     """
     Main entry used by the FastAPI route.
     Generates a video file at `output_path` from the given story text.
+    Returns the path to the first image (cover image).
     """
     # Ensure output directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    cover_image_path = ""
 
     scenes = _generate_scenes_from_story(story)
     if not scenes:
@@ -132,21 +132,30 @@ def generate_story_video(story: str, output_path: str) -> None:
             temp_files.append(img_path)
 
             try:
+                print(f"Generating image for scene {i}...")
                 image = hf_client.text_to_image(
                     scene["prompt"],
                     model="black-forest-labs/FLUX.1-schnell",
                 )
                 image.save(img_path)
-
-                # Rate limit safety
-                time.sleep(10)
-            except Exception:
+            except Exception as e:
+                print(f"Error generating image for scene {i}: {e}")
                 # Fallback: black image so pipeline doesn’t break
                 from PIL import Image
 
                 os.makedirs(os.path.dirname(img_path), exist_ok=True)
                 img = Image.new("RGB", (1024, 1024), color="black")
                 img.save(img_path)
+            
+            if i == 0:
+                # Save the first image as cover image
+                cover_dir = os.path.join("output", "covers")
+                os.makedirs(cover_dir, exist_ok=True)
+                cover_image_path = os.path.join(cover_dir, f"cover_{int(time.time())}.jpg")
+                shutil.copy(img_path, cover_image_path)
+
+            # Rate limit safety - always wait 10s between calls
+            time.sleep(10)
 
             # --- C. Video clip per scene ---
             video_clip = ImageClip(img_path).set_duration(audio_clip.duration)
@@ -165,6 +174,7 @@ def generate_story_video(story: str, output_path: str) -> None:
             codec="libx264",
             audio_codec="aac",
         )
+        return cover_image_path
     finally:
         # Close clips & audio to release file handles
         for clip in clips:
