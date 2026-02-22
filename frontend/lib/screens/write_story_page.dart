@@ -80,7 +80,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
   Future<String?> _generateVideoFromBackend(String storyText, String lang) async {
     try {
       final uri = Uri.parse('http://127.0.0.1:8000/video/generate');
-
+      print(uri);
       final response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},

@@ -9,7 +9,6 @@ from app.services.videoUpload import upload_video
 
 router = APIRouter(prefix="/video", tags=["Video"])
 
-
 @router.post("/generate")
 def generate_video(request: StoryRequest):
     video_id = str(uuid.uuid4())

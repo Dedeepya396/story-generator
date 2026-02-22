@@ -8,28 +8,69 @@ from gtts import gTTS
 from groq import Groq
 from huggingface_hub import InferenceClient
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+from mistralai import Mistral
+import json
+from typing import List, Dict
+import os
 
+client = Mistral(api_key=os.environ["MISTRAL_API_KEY"])
 load_dotenv()
 
 HF_TOKEN = os.getenv("HF_TOKEN")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-if not GROQ_API_KEY:
-    raise RuntimeError("GROQ_API_KEY is not set.")
+# if not GROQ_API_KEY:
+    # raise RuntimeError("GROQ_API_KEY is not set.")
 if not HF_TOKEN:
     raise RuntimeError("HF_TOKEN is not set.")
 
-groq_client = Groq(api_key=GROQ_API_KEY)
+# groq_client = Groq(api_key=GROQ_API_KEY)
 hf_client = InferenceClient(token=HF_TOKEN)
 
 
+# def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Dict]:
+#     """
+#     Ask Groq LLM to split story into JSON scenes.
+#     """
+#     prompt = f"""
+#     Split the following children's story into exactly {num_scenes} scenes.
+    
+#     Return STRICT JSON format only:
+#     [
+#       {{
+#         "text": "short narration",
+#         "prompt": "children's book illustration description, detailed, colorful, 4k"
+#       }}
+#     ]
+    
+#     Story:
+#     {story_text}
+#     """
+
+#     response = groq_client.chat.completions.create(
+#         model="llama-3.1-8b-instant",
+#         messages=[{"role": "user", "content": prompt}],
+#         temperature=0.7,
+#     )
+
+#     raw_content = response.choices[0].message.content or ""
+
+#     start = raw_content.find("[")
+#     end = raw_content.rfind("]") + 1
+#     if start == -1 or end == 0:
+#         raise ValueError(f"Could not find JSON in model response: {raw_content!r}")
+
+#     json_text = raw_content[start:end]
+#     return json.loads(json_text)
+
 def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Dict]:
     """
-    Ask Groq LLM to split story into JSON scenes.
+    Ask Mistral LLM to split story into JSON scenes.
     """
+
     prompt = f"""
     Split the following children's story into exactly {num_scenes} scenes.
-    
+
     Return STRICT JSON format only:
     [
       {{
@@ -37,14 +78,16 @@ def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Di
         "prompt": "children's book illustration description, detailed, colorful, 4k"
       }}
     ]
-    
+
     Story:
     {story_text}
     """
 
-    response = groq_client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[{"role": "user", "content": prompt}],
+    response = client.chat.complete(
+        model="mistral-large-latest",  # you can also use mistral-small-latest
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.7,
     )
 
@@ -57,8 +100,6 @@ def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Di
 
     json_text = raw_content[start:end]
     return json.loads(json_text)
-
-
 def generate_story_video(story: str, output_path: str) -> None:
     """
     Main entry used by the FastAPI route.

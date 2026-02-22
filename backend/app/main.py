@@ -3,9 +3,8 @@ from app.routes.videoRoute import router as video_router
 from app.routes.userRoute import router as users
 from app.routes.characterRoute import router as character_router
 from app.routes.storyRoute import router as story_router
-from app.routes.video import router as video_generate_router  # <-- add this
+from app.routes.video import router as video_generate_router
 app = FastAPI(title="Story Video Generator")
-
 app.include_router(video_router)
 app.include_router(users)
 app.include_router(character_router)
