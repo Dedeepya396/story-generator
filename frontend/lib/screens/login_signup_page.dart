@@ -311,45 +311,72 @@ class _LoginPageState extends State<LoginPage>
   //   Navigator.pushReplacementNamed(context, '/home');
   // }
   Future<void> handleSubmit() async {
-  if (emailController.text.isEmpty ||
-      passwordController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Please fill all fields")),
-    );
-    return;
-  }
-
-  Map<String, dynamic> result;
-
-  if (isLoginMode) {
-    result = await AuthService.login(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
-  } else {
-    if (selectedRole == null) {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a role")),
+        const SnackBar(content: Text("Please fill all fields")),
       );
       return;
     }
 
-    result = await AuthService.signup(
-      nameController.text.trim(),
-      emailController.text.trim(),
-      passwordController.text.trim(),
-      selectedRole!,
-    );
+    Map<String, dynamic> result;
+
+    if (isLoginMode) {
+      result = await AuthService.login(
+        emailController.text.trim(),
+        passwordController.text.trim(),
+      );
+      if (result["success"]) {
+        Navigator.pushReplacementNamed(context, '/home');
+        saveLoginState();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result["message"] ?? "Error")),
+        );
+      }
+    } else {
+      if (selectedRole == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please select a role")),
+        );
+        return;
+      }
+
+      result = await AuthService.signup(
+        nameController.text.trim(),
+        emailController.text.trim(),
+        passwordController.text.trim(),
+        selectedRole!,
+      );
+
+      if (result["success"]) {
+        // Show success dialog
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("Success"),
+              content: const Text("Signup successful! Please login to continue."),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    toggleMode(); // Switch to login mode
+                  },
+                  child: const Text("OK"),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result["message"] ?? "Error")),
+        );
+      }
+    }
   }
-  if (result["success"]) {
-    Navigator.pushReplacementNamed(context, '/home');
-    saveLoginState();
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result["message"] ?? "Error")),
-    );
-  }
-}
 
   void toggleMode() {
     setState(() {
