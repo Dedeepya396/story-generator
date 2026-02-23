@@ -3,22 +3,166 @@ import 'my_stories.dart';
 import 'navbar.dart'; // Import the navbar widget
 
 
-class ProfilePage extends StatelessWidget {
+import '../services/auth_service.dart';
+
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    // If we have a user but no storyCount (older login/session), force a fetch
+    if (AuthService.user != null && AuthService.user!['storyCount'] != null) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      return;
+    }
+
+    final result = await AuthService.getUserProfile();
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+        if (!result["success"]) {
+          errorMessage = result["message"];
+        }
+      });
+    }
+  }
+
+  Future<void> _showEditProfileDialog() async {
+    final user = AuthService.user;
+    final currentName = user?['name'] ?? user?['fullName'] ?? "";
+    final nameController = TextEditingController(text: currentName);
+    final passwordController = TextEditingController();
+
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Edit Profile"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: "Full Name",
+                hintText: "Enter your full name",
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: "New Password",
+                hintText: "Leave blank to keep current",
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              final newPassword = passwordController.text.trim();
+              
+              if (newName.isEmpty && newPassword.isEmpty) {
+                Navigator.pop(context);
+                return;
+              }
+
+              Navigator.pop(context);
+              setState(() => isLoading = true);
+
+              final result = await AuthService.updateUserProfile(
+                name: newName.isNotEmpty ? newName : null,
+                password: newPassword.isNotEmpty ? newPassword : null,
+              );
+              
+              if (mounted) {
+                setState(() {
+                  isLoading = false;
+                  if (!result["success"]) {
+                    errorMessage = result["message"];
+                  }
+                });
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        appBar: Navbar(currentPage: 'home'),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Scaffold(
+        appBar: Navbar(currentPage: 'home'),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Error: $errorMessage"),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    isLoading = true;
+                    errorMessage = null;
+                  });
+                  _fetchProfile();
+                },
+                child: const Text("Retry"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final user = AuthService.user;
+    final userName = user?['name'] ?? user?['fullName'] ?? "Story Creator";
+    final userEmail = user?['email'] ?? "No Email";
+
     return Scaffold(
-      appBar: Navbar(currentPage: 'home'),
+      appBar: Navbar(currentPage: 'profile'),
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             // Responsive layout - side by side on tablets/desktop, stacked on mobile
             if (constraints.maxWidth > 600) {
-              return _buildTabletLayout(context);
+              return _buildTabletLayout(context, userName, userEmail);
             } else {
-              return _buildMobileLayout(context);
+              return _buildMobileLayout(context, userName, userEmail);
             }
           },
         ),
@@ -26,35 +170,35 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildTabletLayout(BuildContext context) {
+  Widget _buildTabletLayout(BuildContext context, String name, String email) {
     return Row(
       children: [
         // Left Side - Profile Section
         Expanded(
           flex: 2,
-          child: _buildProfileSection(context),
+          child: _buildProfileSection(context, name),
         ),
         // Right Side - Information Section
         Expanded(
           flex: 3,
-          child: _buildInformationSection(),
+          child: _buildInformationSection(email),
         ),
       ],
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context) {
+  Widget _buildMobileLayout(BuildContext context, String name, String email) {
     return SingleChildScrollView(
       child: Column(
         children: [
-          _buildProfileSection(context),
-          _buildInformationSection(),
+          _buildProfileSection(context, name),
+          _buildInformationSection(email),
         ],
       ),
     );
   }
 
-  Widget _buildProfileSection(BuildContext context) {
+  Widget _buildProfileSection(BuildContext context, String name) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -92,7 +236,7 @@ class ProfilePage extends StatelessWidget {
                       backgroundColor: Colors.white,
                       child: ClipOval(
                         child: Image.network(
-                          "https://api.dicebear.com/7.x/adventurer/png?seed=Rishika&backgroundColor=b6e3f4,c0aede,d1d4f9&size=200",
+                          "https://api.dicebear.com/7.x/adventurer/png?seed=$name&backgroundColor=b6e3f4,c0aede,d1d4f9&size=200",
                           width: 120,
                           height: 120,
                           fit: BoxFit.cover,
@@ -163,9 +307,9 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 24),
               
               // Name
-              const Text(
-                "Rishika",
-                style: TextStyle(
+              Text(
+                name,
+                style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -206,9 +350,7 @@ class ProfilePage extends StatelessWidget {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () {
-                          // TODO: Edit profile
-                        },
+                        onTap: _showEditProfileDialog,
                         borderRadius: BorderRadius.circular(12),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(
@@ -303,7 +445,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildInformationSection() {
+  Widget _buildInformationSection(String email) {
     return Container(
       color: Colors.white,
       child: SingleChildScrollView(
@@ -329,16 +471,8 @@ class ProfilePage extends StatelessWidget {
                 Expanded(
                   child: _buildInfoItem(
                     title: "Email",
-                    value: "rishika@gmail.com",
+                    value: email,
                     icon: Icons.email_outlined,
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: _buildInfoItem(
-                    title: "Phone",
-                    value: "9897989898",
-                    icon: Icons.phone_outlined,
                   ),
                 ),
               ],
@@ -349,7 +483,7 @@ class ProfilePage extends StatelessWidget {
             // Projects Section
             _buildInfoItem(
               title: "Projects",
-              value: "12 Story Videos Created",
+              value: "${AuthService.user?['storyCount'] ?? 0} Story Videos Created",
               icon: Icons.work_outline,
             ),
             
@@ -485,6 +619,68 @@ class ProfilePage extends StatelessWidget {
     );
   }
 }
+
+  Widget _buildInfoItem({
+    required String title,
+    required String value,
+    required IconData icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: const Color(0xFF636E72),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF636E72),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF2D3436),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialIcon({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          icon,
+          color: color,
+          size: 24,
+        ),
+      ),
+    );
+  }
 
 // Placeholder for My Stories Page
 // class MyStoriesPage extends StatelessWidget {

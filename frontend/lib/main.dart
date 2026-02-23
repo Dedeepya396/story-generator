@@ -39,6 +39,7 @@ import 'screens/write_story_page.dart';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/auth_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -62,11 +63,12 @@ class _MyAppState extends State<MyApp> {
   }
 
   void checkLogin() async {
+    await AuthService.init();
     final prefs = await SharedPreferences.getInstance();
     bool loginStatus = prefs.getBool('isLoggedIn') ?? false;
 
     setState(() {
-      isLoggedIn = loginStatus;
+      isLoggedIn = loginStatus && AuthService.isLoggedIn;
     });
   }
 
@@ -84,6 +86,7 @@ class _MyAppState extends State<MyApp> {
 return MaterialApp(
   home: isLoggedIn == true ? HomePage() : LoginPage(),
   routes: {
+    '/login': (context) => LoginPage(),
     '/home': (context) => HomePage(),
     '/profile': (context) => ProfilePage(),
     '/library': (context) => const CharacterSelectionPage(),

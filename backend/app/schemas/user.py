@@ -22,3 +22,7 @@ class UserSignup(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class UserUpdate(BaseModel):
+    fullName: Optional[str] = None
+    password: Optional[str] = Field(None, min_length=6)

@@ -80,7 +80,7 @@ class AuthService {
   static Map<String, dynamic>? get user => _user;
   static bool get isLoggedIn => _accessToken != null;
 
-  // login: stores access_token and user in memory
+  // login: stores access_token and user in memory and SharedPreferences
   static Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
       Uri.parse("$baseUrl/login"),
@@ -94,15 +94,74 @@ class AuthService {
 
     if (response.statusCode == 200 && data["access_token"] != null) {
       _accessToken = data["access_token"];
-      // backend may return user as 'user' with id/email/fullName or name; handle both
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("token", _accessToken!);
+
       if (data["user"] is Map) {
         _user = Map<String, dynamic>.from(data["user"]);
       } else {
-        _user = {"email": data["email"] ?? null};
+        _user = {"email": data["email"] ?? email};
       }
       return {"success": true};
     } else {
       return {"success": false, "message": data["message"] ?? data["detail"] ?? "Login failed"};
+    }
+  }
+
+  // Initialize service by loading token from SharedPreferences
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _accessToken = prefs.getString("token");
+    if (_accessToken != null) {
+      await getUserProfile();
+    }
+  }
+
+  static Future<Map<String, dynamic>> getUserProfile() async {
+    if (_accessToken == null) return {"success": false, "message": "Not logged in"};
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/profile"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $_accessToken",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      _user = jsonDecode(response.body);
+      return {"success": true, "user": _user};
+    } else {
+      _accessToken = null; // Token might be invalid/expired
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove("token");
+      return {"success": false, "message": "Failed to fetch profile"};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateUserProfile({String? name, String? password}) async {
+    if (_accessToken == null) return {"success": false, "message": "Not logged in"};
+
+    final Map<String, dynamic> body = {};
+    if (name != null) body["fullName"] = name;
+    if (password != null) body["password"] = password;
+
+    final response = await http.put(
+      Uri.parse("$baseUrl/profile"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $_accessToken",
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      _user = jsonDecode(response.body);
+      return {"success": true, "user": _user};
+    } else {
+      final data = jsonDecode(response.body);
+      return {"success": false, "message": data["detail"] ?? data["message"] ?? "Failed to update profile"};
     }
   }
 
@@ -131,9 +190,12 @@ class AuthService {
     }
   }
 
-  static void logout() {
+  static void logout() async {
     _accessToken = null;
     _user = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("token");
+    await prefs.setBool('isLoggedIn', false);
   }
 }
 // ...existing code...

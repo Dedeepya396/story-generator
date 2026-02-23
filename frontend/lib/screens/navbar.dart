@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // ← ADD THIS IMPORT
+import 'package:flutter/services.dart';
+import '../services/auth_service.dart';
 
 class Navbar extends StatelessWidget implements PreferredSizeWidget {
   final String currentPage;
@@ -62,6 +63,16 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
               label: 'Library',
               isActive: currentPage == 'library',
               onPressed: () => Navigator.pushNamed(context, '/library'),
+            ),
+            const SizedBox(width: 40),
+            _buildNavButton(
+              context: context,
+              label: 'Logout',
+              isActive: false,
+              onPressed: () {
+                AuthService.logout();
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              },
             ),
           ],
         ),
