@@ -1,0 +1,13 @@
+cloudinary      
+email-validator 
+fastapi         
+groq            
+gTTS           
+huggingface_hub
+mistralai      
+motor           
+moviepy=1.0.3
+pip             
+PyJWT           
+python-dotenv   
+uvicorn        

@@ -1,0 +1,11 @@
+torch 
+torchaudio
+transformers==4.38.2 
+tokenizers==0.15.2
+soundfile 
+librosa
+accelerate 
+sentencepiece
+huggingface_hub
+numpy
+librosa

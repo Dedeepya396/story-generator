@@ -11,6 +11,11 @@ from huggingface_hub import InferenceClient
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 from mistralai import Mistral
 
+
+# Import AI4Bharat service
+from app.services.ai4bharat_service import generate_multilingual_audio
+
+
 client = Mistral(api_key=os.environ["MISTRAL_API_KEY"])
 load_dotenv()
 
@@ -98,7 +103,7 @@ def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Di
 
     json_text = raw_content[start:end]
     return json.loads(json_text)
-def generate_story_video(story: str, output_path: str) -> str:
+def generate_story_video(story: str, output_path: str , language: str = "english") -> str:
     """
     Main entry used by the FastAPI route.
     Generates a video file at `output_path` from the given story text.
@@ -120,12 +125,36 @@ def generate_story_video(story: str, output_path: str) -> str:
             # --- A. Audio with gTTS ---
             audio_path = os.path.join("output", "videos", f"tmp_audio_{i}.mp3")
             os.makedirs(os.path.dirname(audio_path), exist_ok=True)
-
-            tts = gTTS(scene["text"])
-            tts.save(audio_path)
-            temp_files.append(audio_path)
+            
+            # Check if we need translation + Indic TTS
+            if language.lower() != "english":
+                # Use AI4Bharat pipeline (Translation + VITS TTS)
+                print(f"Scene {i}: Translating to {language}...")
+                translated_text, indic_audio_path = generate_multilingual_audio(
+                    english_text=scene["text"],
+                    target_language=language,
+                    output_path=audio_path
+                )
+                print(f"  Original: {scene['text']}")
+                print(f"  Translated: {translated_text}")
+                temp_files.append(indic_audio_path)
+                audio_path = indic_audio_path  # Use the WAV file
+            else:
+                # Use gTTS for English
+                print(f"Scene {i}: Generating English audio...")
+                mp3_path = audio_path.replace('.wav', '.mp3')
+                tts = gTTS(scene["text"])
+                tts.save(mp3_path)
+                temp_files.append(mp3_path)
+                audio_path = mp3_path
 
             audio_clip = AudioFileClip(audio_path)
+
+            # tts = gTTS(scene["text"])
+            # tts.save(audio_path)
+            # temp_files.append(audio_path)
+
+            # audio_clip = AudioFileClip(audio_path)
 
             # --- B. Image with Hugging Face ---
             img_path = os.path.join("output", "videos", f"tmp_image_{i}.jpg")
