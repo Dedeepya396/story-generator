@@ -3,6 +3,8 @@ import os
 import time
 import shutil
 from typing import List, Dict
+import re, json, difflib
+from typing import Tuple, Optional
 
 from dotenv import load_dotenv
 from gtts import gTTS
@@ -31,40 +33,85 @@ if not HF_TOKEN:
 hf_client = InferenceClient(token=HF_TOKEN)
 
 
-# def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Dict]:
-#     """
-#     Ask Groq LLM to split story into JSON scenes.
-#     """
-#     prompt = f"""
-#     Split the following children's story into exactly {num_scenes} scenes.
-    
-#     Return STRICT JSON format only:
-#     [
-#       {{
-#         "text": "short narration",
-#         "prompt": "children's book illustration description, detailed, colorful, 4k"
-#       }}
-#     ]
-    
-#     Story:
-#     {story_text}
-#     """
+ALLOWED_GENRES = [
+    "Adventure",
+    "Friendship",
+    "Moral",
+    "Fantasy",
+    "Slice-of-life",
+    "Comedy",
+    "Drama",
+    "Educational",
+    "Animal",
+    "Mystery",
+    "Sci-Fi",
+    "Romance",
+    "Other"
+]
 
-#     response = groq_client.chat.completions.create(
-#         model="llama-3.1-8b-instant",
-#         messages=[{"role": "user", "content": prompt}],
-#         temperature=0.7,
-#     )
 
-#     raw_content = response.choices[0].message.content or ""
+def _normalize_genre(raw: Optional[str]) -> str:
+    if not raw:
+        return "Other"
+    raw = raw.strip()
+    # exact match (case-insensitive)
+    for g in ALLOWED_GENRES:
+        if raw.lower() == g.lower():
+            return g
+    # fuzzy match
+    matches = difflib.get_close_matches(raw, ALLOWED_GENRES, n=1, cutoff=0.6)
+    if matches:
+        return matches[0]
+    # try to extract a single word and retry
+    simple = re.sub(r'[^A-Za-z ]', '', raw).split()
+    if simple:
+        s = simple[0]
+        matches = difflib.get_close_matches(s, ALLOWED_GENRES, n=1, cutoff=0.6)
+        if matches:
+            return matches[0]
+    return "Other"
 
-#     start = raw_content.find("[")
-#     end = raw_content.rfind("]") + 1
-#     if start == -1 or end == 0:
-#         raise ValueError(f"Could not find JSON in model response: {raw_content!r}")
 
-#     json_text = raw_content[start:end]
-#     return json.loads(json_text)
+def _generate_title_and_genre(story_text: str) -> Tuple[Optional[str], Optional[str]]:
+    prompt = f"""
+Given the children's story below, propose:
+1) a short descriptive title (<= 6 words),
+2) a single-word or short genre chosen from this allowed list: {ALLOWED_GENRES}
+
+Return STRICT JSON only, for example:
+{{ "title": "Rusty's Carrot Adventure", "genre": "Friendship" }}
+
+Story:
+{story_text}
+"""
+    try:
+        resp = client.chat.complete(
+            model="mistral-large-latest",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+        )
+        raw = resp.choices[0].message.content or ""
+        # extract JSON substring
+        m = re.search(r'(\{.*\})', raw, re.S)
+        json_text = m.group(1) if m else raw
+        try:
+            parsed = json.loads(json_text)
+        except json.JSONDecodeError:
+            # try simple fixes
+            fixed = json_text.replace("'", '"')
+            fixed = re.sub(r',\s*(?=[}\]])', '', fixed)
+            parsed = json.loads(fixed)
+            
+        title = parsed.get("title")
+        raw_genre = parsed.get("genre")
+        genre = _normalize_genre(raw_genre)
+        if isinstance(title, str):
+            title = title.strip()
+        return title, genre
+    except Exception as e:
+        print(f"_generate_title_and_genre failed: {e}")
+        return None, "Other"
+
 
 def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Dict]:
     """
@@ -103,6 +150,8 @@ def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Di
 
     json_text = raw_content[start:end]
     return json.loads(json_text)
+
+
 def generate_story_video(story: str, output_path: str , language: str = "english") -> str:
     """
     Main entry used by the FastAPI route.
@@ -112,6 +161,12 @@ def generate_story_video(story: str, output_path: str , language: str = "english
     # Ensure output directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     cover_image_path = ""
+    
+    
+    # generate title and genre
+    title, genre = _generate_title_and_genre(story)
+    print(f"Generated Title: {title}, Genre: {genre}")
+
 
     scenes = _generate_scenes_from_story(story)
     if not scenes:
@@ -203,7 +258,7 @@ def generate_story_video(story: str, output_path: str , language: str = "english
             codec="libx264",
             audio_codec="aac",
         )
-        return cover_image_path
+        return cover_image_path, title, genre
     finally:
         # Close clips & audio to release file handles
         for clip in clips:
