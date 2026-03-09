@@ -167,7 +167,7 @@ def generate_story_video(story: str, output_path: str , language: str = "english
     title, genre = _generate_title_and_genre(story)
     print(f"Generated Title: {title}, Genre: {genre}")
 
-
+    
     scenes = _generate_scenes_from_story(story)
     if not scenes:
         raise ValueError("No scenes generated from story.")
