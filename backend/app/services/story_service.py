@@ -62,6 +62,24 @@ async def list_stories_by_user(user_id: str) -> List[dict]:
     return results
 
 
+async def list_public_stories() -> List[dict]:
+    """
+    Return all stories with displayFlag == True, sorted by createdAt desc.
+    """
+    cursor = db["stories"].find({"displayFlag": True}).sort("createdAt", -1)
+    results: List[dict] = []
+    async for d in cursor:
+        out = stringify_object_ids(d)
+        out["id"] = out.pop("_id")
+        for k in ("createdAt", "updatedAt"):
+            v = out.get(k)
+            if isinstance(v, datetime.datetime):
+                out[k] = v.isoformat()
+        results.append(out)
+    print(f"Found {len(results)} public stories")
+    return results
+
+
 # async def list_stories_by_user(user_id: str) -> List[dict]:
 #     docs = db["stories"].find({"userId": ObjectId(user_id)})
 #     results = []
