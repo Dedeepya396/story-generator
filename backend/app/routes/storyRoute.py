@@ -2,8 +2,21 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from app.schemas.storySchema import StoryCreate, StoryOut
 from app.services.story_service import create_story, get_story_by_id, list_stories_by_user, list_public_stories
+from app.services.indic_translation_service import get_supported_languages  # ⭐ ADD THIS IMPORT
+
 
 router = APIRouter(prefix="/stories", tags=["stories"])
+
+@router.get("/languages")
+async def get_languages():
+    """Get list of supported input and output languages"""
+    languages = get_supported_languages()
+    return {
+        "input_languages": languages,
+        "output_languages": languages,
+        "count": len(languages)
+    }
+
 
 @router.post("/", response_model=StoryOut)
 async def create_story_endpoint(payload: StoryCreate):

@@ -17,7 +17,12 @@ def generate_video(request: StoryRequest):
     output_path = os.path.join(output_dir, f"{video_id}.mp4")
 
     # Generate video (now returns cover image path)
-    cover_image_path, title, genre = generate_story_video(request.story, output_path ,language=request.language )
+    cover_image_path, title, genre = generate_story_video(
+        request.story, 
+        output_path,
+        language=request.output_language,
+        input_language=request.input_language
+    )
 
     # Upload video to Cloudinary
     video_url = upload_video(output_path, file_name=video_id)
@@ -36,8 +41,11 @@ def generate_video(request: StoryRequest):
     # Return Cloudinary URLs
     return {
         "video_url": video_url,
+        "video_path": video_url,
         "cover_url": cover_url,
+        "cover_image": cover_url,
         "title": title,
         "genre": genre,
-        "language": request.language
+        "input_language": request.input_language,
+        "output_language": request.output_language
     }

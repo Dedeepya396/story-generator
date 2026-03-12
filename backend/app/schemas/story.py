@@ -2,4 +2,7 @@ from pydantic import BaseModel
 
 class StoryRequest(BaseModel):
     story: str
-    language: str = "english"
+    output_language: str = "english"    # Renamed from 'language'
+    input_language: str = "english"     # ADD THIS FIELD
+
+    # language: str = "english"

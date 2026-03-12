@@ -16,6 +16,8 @@ from mistralai import Mistral
 
 # Import AI4Bharat service
 from app.services.ai4bharat_service import generate_multilingual_audio
+from app.services.indic_translation_service import translate_to_english  
+
 
 
 client = Mistral(api_key=os.environ["MISTRAL_API_KEY"])
@@ -152,7 +154,13 @@ def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Di
     return json.loads(json_text)
 
 
-def generate_story_video(story: str, output_path: str , language: str = "english") -> str:
+# def generate_story_video(story: str, output_path: str , language: str = "english") -> str:
+def generate_story_video(
+    story: str, 
+    output_path: str, 
+    language: str = "english",          # Output language for audio
+    input_language: str = "english"     # ADD THIS PARAMETER
+) -> Tuple[str, Optional[str], Optional[str]]:  # CHANGE RETURN TYPE
     """
     Main entry used by the FastAPI route.
     Generates a video file at `output_path` from the given story text.
@@ -162,13 +170,37 @@ def generate_story_video(story: str, output_path: str , language: str = "english
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     cover_image_path = ""
     
+     
+    # ADD TRANSLATION STEP
+    english_story = story
+    if input_language.lower() != "english":
+        print(f"\n{'='*70}")
+        print(f"TRANSLATION: {input_language} → English")
+        print(f"{'='*70}")
+        
+        english_story = translate_to_english(story, input_language)
+        
+        # print(f"\nOriginal ({input_language}):")
+        # print(f"   {story[:150]}...")
+        # print(f"\nTranslated (English):")
+        # print(f"   {english_story[:150]}...")
+        # print(f"{'='*70}\n")
+    
+        print(f"\nOriginal ({input_language}):")
+        print(f"   {story}")
+        print(f"\nTranslated (English):")
+        print(f"   {english_story}")
+        print(f"{'='*70}\n")
     
     # generate title and genre
-    title, genre = _generate_title_and_genre(story)
+    # title, genre = _generate_title_and_genre(story)
+    # print(f"Generated Title: {title}, Genre: {genre}")
+    title, genre = _generate_title_and_genre(english_story)
     print(f"Generated Title: {title}, Genre: {genre}")
 
+
     
-    scenes = _generate_scenes_from_story(story)
+    scenes = _generate_scenes_from_story(english_story)
     if not scenes:
         raise ValueError("No scenes generated from story.")
 
@@ -177,6 +209,9 @@ def generate_story_video(story: str, output_path: str , language: str = "english
 
     try:
         for i, scene in enumerate(scenes):
+            print(f"\n{'#'*70}")
+            print(f"PROCESSING SCENE {i+1}/{len(scenes)}")
+            print(f"{'#'*70}")
             # --- A. Audio with gTTS ---
             audio_path = os.path.join("output", "videos", f"tmp_audio_{i}.mp3")
             os.makedirs(os.path.dirname(audio_path), exist_ok=True)

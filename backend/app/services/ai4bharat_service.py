@@ -401,6 +401,8 @@ def call_translation_worker(text: str, target_language: str) -> str:
         "text": text,
         "target_language": target_language
     })
+    print(f"   → Calling translation worker (English → {target_language})...")
+ 
     
     try:
         result = subprocess.run(
@@ -412,7 +414,10 @@ def call_translation_worker(text: str, target_language: str) -> str:
         )
         
         output = json.loads(result.stdout)
-        return output["translated_text"]
+        translated = output["translated_text"]
+        print(f"   ✅ Translation completed")
+        return translated
+        # return output["translated_text"]
     
     except subprocess.CalledProcessError as e:
         print(f"Translation worker error: {e.stderr}")
@@ -447,6 +452,8 @@ def call_tts_worker(
         "output_path": output_path,
         "speaker_id": speaker_id
     })
+    print(f"   → Calling TTS worker ({language} audio generation)...")
+
     
     try:
         result = subprocess.run(
@@ -458,7 +465,10 @@ def call_tts_worker(
         )
         
         output = json.loads(result.stdout)
-        return output["audio_path"]
+        audio_path = output["audio_path"]
+        print(f"TTS generation completed")
+        return audio_path
+        # return output["audio_path"]
     
     except subprocess.CalledProcessError as e:
         print(f"TTS worker error: {e.stderr}")
@@ -467,6 +477,45 @@ def call_tts_worker(
         print(f"TTS error: {e}")
         raise
 
+
+# def generate_multilingual_audio(
+#     english_text: str,
+#     target_language: str,
+#     output_path: str,
+#     speaker_id: Optional[int] = None,
+#     emotion_id: int = 0
+# ) -> Tuple[str, Optional[str]]:
+#     """
+#     Complete pipeline: Translate English text and generate audio.
+    
+#     Args:
+#         english_text: Original English text
+#         target_language: Target language for audio
+#         output_path: Path to save audio file
+#         speaker_id: Optional speaker ID
+#         emotion_id: Unused (for compatibility)
+    
+#     Returns:
+#         Tuple of (translated_text, audio_file_path or None)
+#     """
+    
+#     if target_language.lower() != "english":
+#         print(f"Translating to {target_language}...")
+#         translated_text = call_translation_worker(english_text, target_language)
+#         print(f"Translation: {translated_text}")
+        
+#         print(f"Generating {target_language} audio...")
+#         wav_path = output_path.replace('.mp3', '.wav')
+#         audio_path = call_tts_worker(
+#             text=translated_text,
+#             language=target_language,
+#             output_path=wav_path,
+#             speaker_id=speaker_id
+#         )
+        
+#         return translated_text, audio_path
+#     else:
+#         return english_text, None
 
 def generate_multilingual_audio(
     english_text: str,
@@ -488,13 +537,28 @@ def generate_multilingual_audio(
     Returns:
         Tuple of (translated_text, audio_file_path or None)
     """
+    
     if target_language.lower() != "english":
-        print(f"Translating to {target_language}...")
-        translated_text = call_translation_worker(english_text, target_language)
-        print(f"Translation: {translated_text}")
+        print(f"\n{'='*70}")
+        print(f"ENGLISH → {target_language.upper()} TRANSLATION + TTS PIPELINE")
+        print(f"{'='*70}")
+        print(f"Source Language: English")
+        print(f"Target Language: {target_language.title()}")
+        print(f"{'='*70}")
+        print(f"Original Text (English):")
+        print(f"   {english_text}")
+        print(f"{'-'*70}")
         
-        print(f"Generating {target_language} audio...")
+        print(f"Step 1: Translating English → {target_language.title()}...")
+        translated_text = call_translation_worker(english_text, target_language)
+        
+        print(f"Translated Text ({target_language.title()}):")
+        print(f"   {translated_text}")
+        print(f"{'-'*70}")
+        
+        print(f"Step 2: Generating {target_language.title()} audio using AI4Bharat VITS TTS...")
         wav_path = output_path.replace('.mp3', '.wav')
+        
         audio_path = call_tts_worker(
             text=translated_text,
             language=target_language,
@@ -502,6 +566,18 @@ def generate_multilingual_audio(
             speaker_id=speaker_id
         )
         
+        print(f"✅ Audio generated successfully!")
+        print(f"   Audio saved to: {audio_path}")
+        print(f"{'='*70}\n")
+        
         return translated_text, audio_path
     else:
+        print(f"\n{'='*70}")
+        print(f"ENGLISH AUDIO PIPELINE (NO TRANSLATION)")
+        print(f"{'='*70}")
+        print(f"Language: English")
+        print(f"Text: {english_text}")
+        print(f"Note: Using gTTS for English audio (handled in video_service)")
+        print(f"{'='*70}\n")
+        
         return english_text, None

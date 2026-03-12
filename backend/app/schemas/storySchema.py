@@ -6,6 +6,7 @@ class StoryCreate(BaseModel):
     title: str
     description: Optional[str] = None
     language: Optional[str] = None
+    inputLanguage: Optional[str] = "english"
     genre: Optional[str] = None
     videoUrl: Optional[str] = None
     coverUrl: Optional[str] = None
@@ -17,6 +18,7 @@ class StoryOut(BaseModel):
     title: str
     description: Optional[str] = None
     language: Optional[str] = None
+    inputLanguage: Optional[str] = "english" 
     genre: Optional[str] = None
     videoUrl: Optional[str] = None
     coverUrl: Optional[str] = None

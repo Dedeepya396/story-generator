@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-gtts
-moviepy==1.0.3
-requests
-groq
-dotenv
