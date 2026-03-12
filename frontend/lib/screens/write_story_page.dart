@@ -7,7 +7,7 @@ import 'navbar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/story_serviceFront.dart';
-
+import '../screens/ai_chatbot_modal.dart';
 class WriteStoryPage extends StatefulWidget {
   final List<Map<String, String>> selectedCharacters;
   const WriteStoryPage({
@@ -20,6 +20,22 @@ class WriteStoryPage extends StatefulWidget {
 }
 
 class _WriteStoryPageState extends State<WriteStoryPage> {
+  void _openChatbot() {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) {
+      return AIChatbotModal(
+        onInsertStory: (story) {
+          setState(() {
+            _storyController.text = story;
+          });
+        },
+      );
+    },
+  );
+}
   final TextEditingController _storyController = TextEditingController();
   final List<Uint8List> _uploadedImageBytes = [];
   
@@ -593,9 +609,33 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
               const SizedBox(height: 20),
 
               // ===== Story Text Box =====
-              const Text(
-                'Your Story',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // const Text(
+              //   'Your Story',
+              //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // ),
+                Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+
+                  const Text(
+                    'Your Story',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+
+                  ElevatedButton.icon(
+                    onPressed: _openChatbot,
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text("AI Story"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+
+                ],
               ),
               const SizedBox(height: 10),
 
