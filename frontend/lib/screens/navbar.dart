@@ -60,13 +60,6 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(width: 40),
             _buildNavButton(
               context: context,
-              label: 'Library',
-              isActive: currentPage == 'library',
-              onPressed: () => Navigator.pushNamed(context, '/library'),
-            ),
-            const SizedBox(width: 40),
-            _buildNavButton(
-              context: context,
               label: 'Logout',
               isActive: false,
               onPressed: () {

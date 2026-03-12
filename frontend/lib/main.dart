@@ -89,7 +89,6 @@ return MaterialApp(
     '/login': (context) => LoginPage(),
     '/home': (context) => HomePage(),
     '/profile': (context) => ProfilePage(),
-    '/library': (context) => const CharacterSelectionPage(),
     '/my-stories': (context) => const MyStoriesPage(),
     '/story-input': (context) =>
         const WriteStoryPage(selectedCharacters: []),

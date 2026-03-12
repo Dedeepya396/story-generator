@@ -89,65 +89,6 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
-  Future<void> _goToLibrary() async {
-    final result = await Navigator.push<List<Map<String, String>>>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const CharacterSelectionPage(
-          isFromWritePage: true,
-        ),
-      ),
-    );
-
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        for (final newChar in result) {
-          final alreadyAdded =
-              _selectedCharacters.any((c) => c['name'] == newChar['name']);
-          if (!alreadyAdded) {
-            _selectedCharacters.add(newChar);
-          }
-        }
-      });
-    }
-  }
-
-  // Future<Map<String, String?>?> _generateVideoFromBackend(String storyText, String lang) async {
-  //   try {
-  //     final uri = Uri.parse('http://127.0.0.1:8000/video/generate');
-  //     print('Sending request to: $uri');
-  //     print('Language: $lang');
-      
-  //     final response = await http.post(
-  //       uri,
-  //       headers: {'Content-Type': 'application/json'},
-  //       body: jsonEncode({'story': storyText, 'language': lang}),
-  //     );
-
-  //     print('Response status: ${response.statusCode}');
-      
-  //     if (response.statusCode == 200) {
-  //       final data = jsonDecode(response.body);
-  //       print('Video URL: ${data['video_url']}');
-  //       print('Cover URL: ${data['cover_url']}');
-  //       print('Title: ${data['title']}');
-  //       print('Genre: ${data['genre']}');
-  //       return {
-  //         'video_url': data['video_url'],
-  //         'cover_url': data['cover_url'],
-  //         'title': data['title'] ?? 'Untitled',
-  //         'genre': data['genre'] ?? 'General',
-  //       };
-  //     } else {
-  //       print('Error response: ${response.body}');
-  //       return null;
-  //     }
-  //   } catch (e) {
-  //     print('Exception in _generateVideoFromBackend: $e');
-  //     return null;
-  //   }
-  // }
-
     Future<Map<String, String?>?> _generateVideoFromBackend(
     String storyText,
     String inputLang,
@@ -324,117 +265,117 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
               ),
               const SizedBox(height: 12),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _goToLibrary,
-                      child: Container(
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue.shade200),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.photo_library,
-                                color: Colors.blue.shade600, size: 28),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Select from Library',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
+              // Row(
+              //   children: [
+              //     Expanded(
+              //       child: GestureDetector(
+              //         onTap: _goToLibrary,
+              //         child: Container(
+              //           height: 80,
+              //           decoration: BoxDecoration(
+              //             color: Colors.blue.shade50,
+              //             borderRadius: BorderRadius.circular(12),
+              //             border: Border.all(color: Colors.blue.shade200),
+              //           ),
+              //           child: Column(
+              //             mainAxisAlignment: MainAxisAlignment.center,
+              //             children: [
+              //               Icon(Icons.photo_library,
+              //                   color: Colors.blue.shade600, size: 28),
+              //               const SizedBox(height: 6),
+              //               Text(
+              //                 'Select from Library',
+              //                 style: TextStyle(
+              //                   fontSize: 12,
+              //                   fontWeight: FontWeight.w600,
+              //                   color: Colors.blue.shade700,
+              //                 ),
+              //               ),
+              //             ],
+              //           ),
+              //         ),
+              //       ),
+              //     ),
+              //     const SizedBox(width: 12),
 
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _pickImagesFromDevice,
-                      child: Container(
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.upload_file,
-                                color: Colors.green.shade600, size: 28),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Upload Images',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.green.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              //     Expanded(
+              //       child: GestureDetector(
+              //         onTap: _pickImagesFromDevice,
+              //         child: Container(
+              //           height: 80,
+              //           decoration: BoxDecoration(
+              //             color: Colors.green.shade50,
+              //             borderRadius: BorderRadius.circular(12),
+              //             border: Border.all(color: Colors.green.shade200),
+              //           ),
+              //           child: Column(
+              //             mainAxisAlignment: MainAxisAlignment.center,
+              //             children: [
+              //               Icon(Icons.upload_file,
+              //                   color: Colors.green.shade600, size: 28),
+              //               const SizedBox(height: 6),
+              //               Text(
+              //                 'Upload Images',
+              //                 style: TextStyle(
+              //                   fontSize: 12,
+              //                   fontWeight: FontWeight.w600,
+              //                   color: Colors.green.shade700,
+              //                 ),
+              //               ),
+              //             ],
+              //           ),
+              //         ),
+              //       ),
+              //     ),
+              //   ],
+              // ),
 
               // ===== Uploaded Images Preview =====
-              if (_uploadedImageBytes.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 90,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _uploadedImageBytes.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.memory(
-                              _uploadedImageBytes[index],
-                              width: 70,
-                              height: 70,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 2,
-                            right: 2,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _uploadedImageBytes.removeAt(index);
-                                });
-                              },
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close,
-                                    size: 16, color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ],
+              // if (_uploadedImageBytes.isNotEmpty) ...[
+              //   const SizedBox(height: 12),
+              //   SizedBox(
+              //     height: 90,
+              //     child: ListView.separated(
+              //       scrollDirection: Axis.horizontal,
+              //       itemCount: _uploadedImageBytes.length,
+              //       separatorBuilder: (_, __) => const SizedBox(width: 10),
+              //       itemBuilder: (context, index) {
+              //         return Stack(
+              //           children: [
+              //             ClipRRect(
+              //               borderRadius: BorderRadius.circular(10),
+              //               child: Image.memory(
+              //                 _uploadedImageBytes[index],
+              //                 width: 70,
+              //                 height: 70,
+              //                 fit: BoxFit.cover,
+              //               ),
+              //             ),
+              //             Positioned(
+              //               top: 2,
+              //               right: 2,
+              //               child: GestureDetector(
+              //                 onTap: () {
+              //                   setState(() {
+              //                     _uploadedImageBytes.removeAt(index);
+              //                   });
+              //                 },
+              //                 child: Container(
+              //                   decoration: const BoxDecoration(
+              //                     color: Colors.black54,
+              //                     shape: BoxShape.circle,
+              //                   ),
+              //                   child: const Icon(Icons.close,
+              //                       size: 16, color: Colors.white),
+              //                 ),
+              //               ),
+              //             ),
+              //           ],
+              //         );
+              //       },
+              //     ),
+              //   ),
+              // ],
 
               const SizedBox(height: 20),
 
