@@ -140,11 +140,12 @@ class AuthService {
     }
   }
 
-  static Future<Map<String, dynamic>> updateUserProfile({String? name, String? password}) async {
+  static Future<Map<String, dynamic>> updateUserProfile({String? name, String? email, String? password}) async {
     if (_accessToken == null) return {"success": false, "message": "Not logged in"};
 
     final Map<String, dynamic> body = {};
     if (name != null) body["fullName"] = name;
+    if (email != null) body["email"] = email;
     if (password != null) body["password"] = password;
 
     final response = await http.put(

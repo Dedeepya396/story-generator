@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
-import 'my_stories.dart';
-import 'navbar.dart'; // Import the navbar widget
-
-
 import '../services/auth_service.dart';
+import 'navbar.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Profile Page',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(useMaterial3: true),
+      home: const ProfilePage(),
+    );
+  }
+}
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -46,70 +61,130 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _showEditProfileDialog() async {
     final user = AuthService.user;
-    final currentName = user?['name'] ?? user?['fullName'] ?? "";
+    final currentName = user?['fullName'] ?? user?['name'] ?? "";
+    final currentEmail = user?['email'] ?? "";
     final nameController = TextEditingController(text: currentName);
+    final emailController = TextEditingController(text: currentEmail);
     final passwordController = TextEditingController();
+    bool isSaving = false;
 
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Edit Profile"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: "Full Name",
-                hintText: "Enter your full name",
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFFFFF3DC),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            "Edit Profile",
+            style: TextStyle(color: Color(0xFF3B2308), fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Color(0xFF3B2308)),
+                decoration: InputDecoration(
+                  labelText: "Full Name",
+                  labelStyle: const TextStyle(color: Color(0xFF7A5230)),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0xFF6C63FF)),
+                  ),
+                ),
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                style: const TextStyle(color: Color(0xFF3B2308)),
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  labelStyle: const TextStyle(color: Color(0xFF7A5230)),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0xFF6C63FF)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                style: const TextStyle(color: Color(0xFF3B2308)),
+                decoration: InputDecoration(
+                  labelText: "New Password",
+                  hintText: "Leave blank to keep current",
+                  labelStyle: const TextStyle(color: Color(0xFF7A5230)),
+                  hintStyle: TextStyle(color: const Color(0xFF7A5230).withOpacity(0.5)),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0xFF6C63FF)),
+                  ),
+                ),
+              ),
+              if (isSaving)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Color(0xFF7A5230))),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "New Password",
-                hintText: "Leave blank to keep current",
+            ElevatedButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      final newName = nameController.text.trim();
+                      final newEmail = emailController.text.trim();
+                      final newPassword = passwordController.text.trim();
+
+                      if (newName.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Name cannot be empty")),
+                        );
+                        return;
+                      }
+
+                      if (newEmail.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Email cannot be empty")),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isSaving = true);
+
+                      final result = await AuthService.updateUserProfile(
+                        name: newName,
+                        email: newEmail,
+                        password: newPassword.isNotEmpty ? newPassword : null,
+                      );
+
+                      if (mounted) {
+                        setDialogState(() => isSaving = false);
+                        if (result["success"]) {
+                          Navigator.pop(context);
+                          setState(() {}); // Refresh ProfilePage
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Profile updated successfully")),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(result["message"] ?? "Update failed")),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6C63FF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
+              child: const Text("Save"),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final newName = nameController.text.trim();
-              final newPassword = passwordController.text.trim();
-              
-              if (newName.isEmpty && newPassword.isEmpty) {
-                Navigator.pop(context);
-                return;
-              }
-
-              Navigator.pop(context);
-              setState(() => isLoading = true);
-
-              final result = await AuthService.updateUserProfile(
-                name: newName.isNotEmpty ? newName : null,
-                password: newPassword.isNotEmpty ? newPassword : null,
-              );
-              
-              if (mounted) {
-                setState(() {
-                  isLoading = false;
-                  if (!result["success"]) {
-                    errorMessage = result["message"];
-                  }
-                });
-              }
-            },
-            child: const Text("Save"),
-          ),
-        ],
       ),
     );
   }
@@ -123,7 +198,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    if (errorMessage != null) {
+    if (errorMessage != null && AuthService.user == null) {
       return Scaffold(
         appBar: Navbar(currentPage: 'home'),
         body: Center(
@@ -149,557 +224,325 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     final user = AuthService.user;
-    final userName = user?['name'] ?? user?['fullName'] ?? "Story Creator";
+    final userName = user?['fullName'] ?? user?['name'] ?? "Story Creator";
     final userEmail = user?['email'] ?? "No Email";
+    final storyCount = user?['storyCount'] ?? 0;
+    final userRole = user?['role'] ?? "Creative Storyteller";
+
+    final size = MediaQuery.of(context).size;
+
 
     return Scaffold(
-      appBar: Navbar(currentPage: 'profile'),
-      backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Responsive layout - side by side on tablets/desktop, stacked on mobile
-            if (constraints.maxWidth > 600) {
-              return _buildTabletLayout(context, userName, userEmail);
-            } else {
-              return _buildMobileLayout(context, userName, userEmail);
-            }
-          },
+      appBar: Navbar(currentPage: 'home'),
+      body: Stack(
+        children: [
+          // ── Full-screen background image ───────────────────────────────
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/profile_page_bg.png',
+              // ↑ Place your bamboo-frame image here.
+              // For quick testing you can swap to:
+              // Image.network('https://...')
+              // fit: BoxFit.contain,
+              fit: BoxFit.fill,
+            ),
+          ),
+          // ── Positioned 1: Avatar + Name + Edit Profile (centered in board) ──
+Positioned(
+  top: size.height * 0.24,
+  left: size.width * 0.12,
+  right: size.width * 0.08,
+  child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6C63FF), Color(0xFFFF6584)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.28),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: CircleAvatar(
+          radius: 40,
+          backgroundImage: NetworkImage(
+            "https://api.dicebear.com/7.x/adventurer/png?seed=$userName&backgroundColor=b6e3f4,c0aede,d1d4f9&size=200",
+          ),
         ),
       ),
-    );
-  }
 
-  Widget _buildTabletLayout(BuildContext context, String name, String email) {
-    return Row(
-      children: [
-        // Left Side - Profile Section
-        Expanded(
-          flex: 2,
-          child: _buildProfileSection(context, name),
+      const SizedBox(height: 10),
+
+      Text(
+        userName,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w900,
+          color: Color(0xFF3B2308),
+          letterSpacing: 0.4,
         ),
-        // Right Side - Information Section
-        Expanded(
-          flex: 3,
-          child: _buildInformationSection(email),
+      ),
+
+      const SizedBox(height: 2),
+
+      Text(
+        userRole,
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF7A5230),
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
+
+      const SizedBox(height: 10),
+
+      OutlinedButton.icon(
+        onPressed: _showEditProfileDialog,
+        icon: const Icon(Icons.edit_outlined, size: 14),
+        label: const Text('Edit Profile'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF5B3A18),
+          backgroundColor: Colors.white.withOpacity(0.5),
+          side: const BorderSide(color: Color(0xFF7A5230), width: 1.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+          textStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+
+// ── Positioned 2: Information + Connect sections (left aligned in board) ──
+Positioned(
+  top: size.height * 0.40,     // starts below the avatar section
+  bottom: size.height * 0.28,  // stops above cartoon kids
+  left: size.width * 0.25,     // inside left bamboo frame
+  right: size.width * 0.08,    // inside right bamboo frame
+  child: SingleChildScrollView(
+    physics: const BouncingScrollPhysics(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        // Information Section
+        const _Label('Information', fontSize: 30),
+        const SizedBox(height: 15),
+        _InfoRow(
+          icon: Icons.email_outlined,
+          label: 'Email',
+          value: userEmail,
+        ),
+        const SizedBox(height: 15),
+        _InfoRow(
+          icon: Icons.folder_outlined,
+          label: 'Projects',
+          value: '$storyCount Story Videos Created',
         ),
       ],
-    );
-  }
 
-  Widget _buildMobileLayout(BuildContext context, String name, String email) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildProfileSection(context, name),
-          _buildInformationSection(email),
+
+    ),
+  ),
+),
         ],
       ),
     );
   }
 
-  Widget _buildProfileSection(BuildContext context, String name) {
+  Widget _cardDivider() => Divider(
+      height: 18,
+      color: const Color(0xFF7A5230).withOpacity(0.18),
+      thickness: 1);
+}
+
+
+/// Parchment-toned translucent card that blends with the board texture
+class _BoardCard extends StatelessWidget {
+  final Widget child;
+  const _BoardCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFF6B6B),
-            Color(0xFFFFB84D),
-          ],
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        // Warm parchment tint, semi-transparent so board texture shows through
+        color: const Color(0xFFFFF3DC).withOpacity(0.52),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF8B6330).withOpacity(0.28),
+          width: 1,
         ),
-      ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Profile Picture
-              Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.white,
-                      child: ClipOval(
-                        child: Image.network(
-                          "https://api.dicebear.com/7.x/adventurer/png?seed=$name&backgroundColor=b6e3f4,c0aede,d1d4f9&size=200",
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color(0xFFB6E3F4),
-                                    Color(0xFFC0AEDE),
-                                  ],
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.person,
-                                size: 60,
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color(0xFFB6E3F4),
-                                    Color(0xFFC0AEDE),
-                                  ],
-                                ),
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD93D),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                      child: const Icon(
-                        Icons.auto_stories,
-                        color: Color(0xFFFF6B6B),
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Name
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Role
-              const Text(
-                "Story Creator",
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Buttons Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Edit Profile Button
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _showEditProfileDialog,
-                        borderRadius: BorderRadius.circular(12),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.edit,
-                                color: Color(0xFFFF6B6B),
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                "Edit Profile",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFFF6B6B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(width: 16),
-                  
-                  // My Stories Button
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD93D),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MyStoriesPage(),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.book,
-                                color: Color(0xFFFF6B6B),
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                "My Stories",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFFF6B6B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildInformationSection(String email) {
-    return Container(
-      color: Colors.white,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Information Header
-            const Text(
-              "Information",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2D3436),
-              ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Email and Phone Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoItem(
-                    title: "Email",
-                    value: email,
-                    icon: Icons.email_outlined,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Projects Section
-            _buildInfoItem(
-              title: "Projects",
-              value: "${AuthService.user?['storyCount'] ?? 0} Story Videos Created",
-              icon: Icons.work_outline,
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Recent and Most Viewed Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoItem(
-                    title: "Recent",
-                    value: "The Magic Garden",
-                    icon: Icons.access_time,
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: _buildInfoItem(
-                    title: "Most Viewed",
-                    value: "Adventures in Space",
-                    icon: Icons.visibility_outlined,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Social Media Links
-            const Text(
-              "Connect",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF636E72),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                _buildSocialIcon(
-                  icon: Icons.facebook,
-                  color: const Color(0xFF1877F2),
-                  onTap: () {
-                    // TODO: Open Facebook
-                  },
-                ),
-                const SizedBox(width: 16),
-                _buildSocialIcon(
-                  icon: Icons.camera_alt,
-                  color: const Color(0xFF1DA1F2),
-                  onTap: () {
-                    // TODO: Open Twitter
-                  },
-                ),
-                const SizedBox(width: 16),
-                _buildSocialIcon(
-                  icon: Icons.photo_camera,
-                  color: const Color(0xFFE4405F),
-                  onTap: () {
-                    // TODO: Open Instagram
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoItem({
-    required String title,
-    required String value,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: const Color(0xFF636E72),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF636E72),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2D3436),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSocialIcon({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: color,
-          size: 24,
-        ),
-      ),
+      child: child,
     );
   }
 }
 
-  Widget _buildInfoItem({
-    required String title,
-    required String value,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: const Color(0xFF636E72),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF636E72),
+// class _Label extends StatelessWidget {
+//   final String text;
+//   const _Label(this.text);
+
+//   @override
+//   Widget build(BuildContext context) => Text(
+//         text,
+//         style: const TextStyle(
+//           fontSize: 14,
+//           fontWeight: FontWeight.w900,
+//           color: Color(0xFF3B2308),
+//           letterSpacing: 0.3,
+//         ),
+//       );
+// }
+
+class _Label extends StatelessWidget {
+  final String text;
+  final double fontSize;                          // ← add this
+  const _Label(this.text, {this.fontSize = 14}); // ← default is 14
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: TextStyle(
+          fontSize: fontSize,        // ← uses the passed value
+          fontWeight: FontWeight.w900,
+          color: const Color(0xFF3B2308),
+          letterSpacing: 0.3,
+        ),
+      );
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _InfoRow(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: const Color(0xFF7A5230)),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 20,
+                  color: Color(0xFF7A5230),
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Color(0xFF3B2308),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      );
+}
+
+class _SocialBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final Color bg;
+  const _SocialBtn(
+      {required this.icon, required this.color, required this.bg});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.22),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2D3436),
+        child: Icon(icon, color: color, size: 22),
+      );
+}
+
+class _StatPill extends StatelessWidget {
+  final String label;
+  final String value;
+  const _StatPill({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6C63FF), Color(0xFF9B8FFF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6C63FF).withOpacity(0.35),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.white.withOpacity(0.88),
+                    fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildSocialIcon({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: color,
-          size: 24,
-        ),
-      ),
-    );
-  }
-
-// Placeholder for My Stories Page
-// class MyStoriesPage extends StatelessWidget {
-//   const MyStoriesPage({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('My Stories'),
-//         backgroundColor: const Color(0xFFFF6B6B),
-//         foregroundColor: Colors.white,
-//       ),
-//       body: const Center(
-//         child: Text(
-//           'My Stories Page',
-//           style: TextStyle(fontSize: 24),
-//         ),
-//       ),
-//     );
-//   }
-// }
+      );
+}
