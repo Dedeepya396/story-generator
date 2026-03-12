@@ -117,6 +117,8 @@ import soundfile as sf
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 from nltk.tokenize import sent_tokenize
 import nltk
+nltk.download('punkt')
+nltk.download('punkt_tab')
 
 try:
     nltk.data.find('tokenizers/punkt')
