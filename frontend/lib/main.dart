@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/profile_page.dart';
 import 'screens/home_page.dart';
-import 'screens/character_selection_page.dart';
 import 'screens/login_signup_page.dart';
 import 'screens/my_stories.dart';
 import 'screens/write_story_page.dart';

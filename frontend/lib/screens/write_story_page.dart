@@ -1,13 +1,1996 @@
+// import 'package:flutter/material.dart';
+// import 'package:image_picker/image_picker.dart';
+// import 'dart:typed_data';
+// import 'story_display_page.dart';
+// import 'character_selection_page.dart';
+// import 'navbar.dart';
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
+// import '../services/story_serviceFront.dart';
+// import '../screens/ai_chatbot_modal.dart';
+// class WriteStoryPage extends StatefulWidget {
+//   final List<Map<String, String>> selectedCharacters;
+//   const WriteStoryPage({
+//     super.key,
+//     required this.selectedCharacters,
+//   });
+
+//   @override
+//   State<WriteStoryPage> createState() => _WriteStoryPageState();
+// }
+
+// class _WriteStoryPageState extends State<WriteStoryPage> {
+//   void _openChatbot() {
+//   showModalBottomSheet(
+//     context: context,
+//     isScrollControlled: true,
+//     backgroundColor: Colors.transparent,
+//     builder: (_) {
+//       return AIChatbotModal(
+//         onInsertStory: (story) {
+//           setState(() {
+//             _storyController.text = story;
+//           });
+//         },
+//       );
+//     },
+//   );
+// }
+//   final TextEditingController _storyController = TextEditingController();
+//   final List<Uint8List> _uploadedImageBytes = [];
+  
+//   // ✅ Changed: Use dropdown value instead of TextEditingController
+//   // String _selectedLanguage = 'english';  // Default language
+//   String _selectedInputLanguage = 'english';   // Language you write in
+//   String _selectedOutputLanguage = 'english';  // Language for video narration
+ 
+  
+//   bool _isPublic = true;
+//   List<Map<String, String>> _selectedCharacters = [];
+
+//   // ✅ Language options matching backend
+//   final List<Map<String, String>> _languageOptions = [
+//     {'code': 'english', 'name': 'English', 'native': 'English'},
+//     {'code': 'hindi', 'name': 'Hindi', 'native': 'हिन्दी'},
+//     {'code': 'tamil', 'name': 'Tamil', 'native': 'தமிழ்'},
+//     {'code': 'telugu', 'name': 'Telugu', 'native': 'తెలుగు'},
+//     {'code': 'malayalam', 'name': 'Malayalam', 'native': 'മലയാളം'},
+//     {'code': 'kannada', 'name': 'Kannada', 'native': 'ಕನ್ನಡ'},
+//     {'code': 'bengali', 'name': 'Bengali', 'native': 'বাংলা'},
+//     {'code': 'gujarati', 'name': 'Gujarati', 'native': 'ગુજરાતી'},
+//     {'code': 'marathi', 'name': 'Marathi', 'native': 'मराठी'},
+//     {'code': 'punjabi', 'name': 'Punjabi', 'native': 'ਪੰਜਾਬੀ'},
+//     {'code': 'odia', 'name': 'Odia', 'native': 'ଓଡ଼ିଆ'},
+//     {'code': 'assamese', 'name': 'Assamese', 'native': 'অসমীয়া'},
+//   ];
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _selectedCharacters = List.from(widget.selectedCharacters);
+//   }
+
+//   @override
+//   void dispose() {
+//     _storyController.dispose();
+//     super.dispose();
+//   }
+
+//   Future<void> _pickImagesFromDevice() async {
+//     final ImagePicker picker = ImagePicker();
+//     final List<XFile> images = await picker.pickMultiImage();
+//     if (images.isNotEmpty) {
+//       for (final xfile in images) {
+//         final bytes = await xfile.readAsBytes();
+//         setState(() {
+//           _uploadedImageBytes.add(bytes);
+//         });
+//       }
+//     }
+//   }
+
+//     Future<Map<String, String?>?> _generateVideoFromBackend(
+//     String storyText,
+//     String inputLang,
+//     String outputLang,
+//   ) async {
+//     try {
+//       final uri = Uri.parse('http://127.0.0.1:8000/videos/generate');
+//       print('Sending request to: $uri');
+//       print('Input Language: $inputLang');
+//       print('Output Language: $outputLang');
+      
+//       final response = await http.post(
+//         uri,
+//         headers: {'Content-Type': 'application/json'},
+//         body: jsonEncode({
+//           'story': storyText,
+//           'input_language': inputLang,    // ⭐ Language story is written in
+//           'output_language': outputLang,  // ⭐ Language for video narration
+//         }),
+//       );
+
+//       print('Response status: ${response.statusCode}');
+      
+//       if (response.statusCode == 200) {
+//         final data = jsonDecode(response.body);
+//         print('Video URL: ${data['video_path']}');
+//         print('Cover URL: ${data['cover_image']}');
+//         print('Title: ${data['title']}');
+//         print('Genre: ${data['genre']}');
+        
+//         return {
+//           'video_url': data['video_path'] ?? data['video_url'],
+//           'cover_url': data['cover_image'] ?? data['cover_url'],
+//           'title': data['title'] ?? 'Untitled',
+//           'genre': data['genre'] ?? 'General',
+//         };
+//       } else {
+//         print('Error response: ${response.body}');
+//         return null;
+//       }
+//     } catch (e) {
+//       print('Exception in _generateVideoFromBackend: $e');
+//       return null;
+//     }
+//   }
+
+
+//   Future<Map<String, dynamic>> _submitStory(String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre) async {
+//     final storyText = _storyController.text.trim();
+
+//     if (storyText.isEmpty) {
+//       return {'success': false, 'message': 'Please write your story before submitting'};
+//     }
+
+//     // final title = storyText.isNotEmpty
+//     //     ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText)
+//     //     : 'Untitled';
+//     // final genre = "General";
+//     final String titleToSend = (storyTitle != null && storyTitle.trim().isNotEmpty)
+//         ? storyTitle.trim()
+//         : (storyText.isNotEmpty ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText) : 'Untitled');
+
+//     final String genreToSend = (storyGenre != null && storyGenre.trim().isNotEmpty) ? storyGenre.trim() : 'General';
+
+
+//     final res = await StoryService.createStory(
+//       title: titleToSend,
+//       description: storyText,
+//       language: _selectedOutputLanguage,  // ✅ Use selected language
+//       displayFlag: _isPublic,
+//       genre: genreToSend,
+//       videoUrl: videoUrl,
+//       coverUrl: coverUrl,
+//     );
+
+//     return res;
+//   }
+
+//    String _getPlaceholderText() {
+//     final placeholders = {
+//       'english': 'Once upon a time...',
+//       'hindi': 'एक समय की बात है...',
+//       'tamil': 'ஒரு காலத்தில்...',
+//       'telugu': 'ఒకప్పుడు...',
+//       'malayalam': 'ഒരു കാലത്ത്...',
+//       'kannada': 'ಒಂದು ಕಾಲದಲ್ಲಿ...',
+//       'bengali': 'এক সময়...',
+//       'gujarati': 'એક વખત...',
+//       'marathi': 'एकदा...',
+//       'punjabi': 'ਇੱਕ ਵਾਰ...',
+//       'odia': 'ଏକଥର...',
+//       'assamese': 'এবাৰ...',
+//     };
+//     return placeholders[_selectedInputLanguage] ?? 'Write your story here...';
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: Navbar(currentPage: 'home'),
+//       body: SingleChildScrollView(  // ⭐ Added ScrollView
+//         child: Padding(
+//           padding: const EdgeInsets.all(20),
+//           child: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               // ===== Selected Characters Preview =====
+//               if (_selectedCharacters.isNotEmpty) ...[
+//                 const Text(
+//                   'Selected Characters',
+//                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                 ),
+//                 const SizedBox(height: 10),
+//                 SizedBox(
+//                   height: 90,
+//                   child: ListView.separated(
+//                     scrollDirection: Axis.horizontal,
+//                     itemCount: _selectedCharacters.length,
+//                     separatorBuilder: (_, __) => const SizedBox(width: 12),
+//                     itemBuilder: (context, index) {
+//                       final character = _selectedCharacters[index];
+//                       return Column(
+//                         mainAxisSize: MainAxisSize.min,
+//                         children: [
+//                           Stack(
+//                             children: [
+//                               ClipRRect(
+//                                 borderRadius: BorderRadius.circular(10),
+//                                 child: Image.asset(
+//                                   character['image']!,
+//                                   width: 56,
+//                                   height: 56,
+//                                   fit: BoxFit.cover,
+//                                 ),
+//                               ),
+//                               Positioned(
+//                                 top: 0,
+//                                 right: 0,
+//                                 child: GestureDetector(
+//                                   onTap: () {
+//                                     setState(() {
+//                                       _selectedCharacters.removeAt(index);
+//                                     });
+//                                   },
+//                                   child: Container(
+//                                     decoration: const BoxDecoration(
+//                                       color: Colors.black54,
+//                                       shape: BoxShape.circle,
+//                                     ),
+//                                     child: const Icon(Icons.close,
+//                                         size: 14, color: Colors.white),
+//                                   ),
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//                           const SizedBox(height: 4),
+//                           Text(
+//                             character['name']!,
+//                             style: const TextStyle(fontSize: 11),
+//                           ),
+//                         ],
+//                       );
+//                     },
+//                   ),
+//                 ),
+//                 const SizedBox(height: 16),
+//               ],
+
+//               // ===== Add Characters Section =====
+//               const Text(
+//                 'Add Characters',
+//                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//               ),
+//               const SizedBox(height: 12),
+
+//               // Row(
+//               //   children: [
+//               //     Expanded(
+//               //       child: GestureDetector(
+//               //         onTap: _goToLibrary,
+//               //         child: Container(
+//               //           height: 80,
+//               //           decoration: BoxDecoration(
+//               //             color: Colors.blue.shade50,
+//               //             borderRadius: BorderRadius.circular(12),
+//               //             border: Border.all(color: Colors.blue.shade200),
+//               //           ),
+//               //           child: Column(
+//               //             mainAxisAlignment: MainAxisAlignment.center,
+//               //             children: [
+//               //               Icon(Icons.photo_library,
+//               //                   color: Colors.blue.shade600, size: 28),
+//               //               const SizedBox(height: 6),
+//               //               Text(
+//               //                 'Select from Library',
+//               //                 style: TextStyle(
+//               //                   fontSize: 12,
+//               //                   fontWeight: FontWeight.w600,
+//               //                   color: Colors.blue.shade700,
+//               //                 ),
+//               //               ),
+//               //             ],
+//               //           ),
+//               //         ),
+//               //       ),
+//               //     ),
+//               //     const SizedBox(width: 12),
+
+//               //     Expanded(
+//               //       child: GestureDetector(
+//               //         onTap: _pickImagesFromDevice,
+//               //         child: Container(
+//               //           height: 80,
+//               //           decoration: BoxDecoration(
+//               //             color: Colors.green.shade50,
+//               //             borderRadius: BorderRadius.circular(12),
+//               //             border: Border.all(color: Colors.green.shade200),
+//               //           ),
+//               //           child: Column(
+//               //             mainAxisAlignment: MainAxisAlignment.center,
+//               //             children: [
+//               //               Icon(Icons.upload_file,
+//               //                   color: Colors.green.shade600, size: 28),
+//               //               const SizedBox(height: 6),
+//               //               Text(
+//               //                 'Upload Images',
+//               //                 style: TextStyle(
+//               //                   fontSize: 12,
+//               //                   fontWeight: FontWeight.w600,
+//               //                   color: Colors.green.shade700,
+//               //                 ),
+//               //               ),
+//               //             ],
+//               //           ),
+//               //         ),
+//               //       ),
+//               //     ),
+//               //   ],
+//               // ),
+
+//               // ===== Uploaded Images Preview =====
+//               // if (_uploadedImageBytes.isNotEmpty) ...[
+//               //   const SizedBox(height: 12),
+//               //   SizedBox(
+//               //     height: 90,
+//               //     child: ListView.separated(
+//               //       scrollDirection: Axis.horizontal,
+//               //       itemCount: _uploadedImageBytes.length,
+//               //       separatorBuilder: (_, __) => const SizedBox(width: 10),
+//               //       itemBuilder: (context, index) {
+//               //         return Stack(
+//               //           children: [
+//               //             ClipRRect(
+//               //               borderRadius: BorderRadius.circular(10),
+//               //               child: Image.memory(
+//               //                 _uploadedImageBytes[index],
+//               //                 width: 70,
+//               //                 height: 70,
+//               //                 fit: BoxFit.cover,
+//               //               ),
+//               //             ),
+//               //             Positioned(
+//               //               top: 2,
+//               //               right: 2,
+//               //               child: GestureDetector(
+//               //                 onTap: () {
+//               //                   setState(() {
+//               //                     _uploadedImageBytes.removeAt(index);
+//               //                   });
+//               //                 },
+//               //                 child: Container(
+//               //                   decoration: const BoxDecoration(
+//               //                     color: Colors.black54,
+//               //                     shape: BoxShape.circle,
+//               //                   ),
+//               //                   child: const Icon(Icons.close,
+//               //                       size: 16, color: Colors.white),
+//               //                 ),
+//               //               ),
+//               //             ),
+//               //           ],
+//               //         );
+//               //       },
+//               //     ),
+//               //   ),
+//               // ],
+
+//               const SizedBox(height: 20),
+
+//               // ⭐ NEW: Language Selection Card
+//               Card(
+//                 elevation: 3,
+//                 shape: RoundedRectangleBorder(
+//                   borderRadius: BorderRadius.circular(12),
+//                 ),
+//                 child: Padding(
+//                   padding: const EdgeInsets.all(16),
+//                   child: Column(
+//                     crossAxisAlignment: CrossAxisAlignment.start,
+//                     children: [
+//                       Row(
+//                         children: [
+//                           Icon(Icons.language, color: Colors.blue.shade700, size: 24),
+//                           const SizedBox(width: 8),
+//                           const Text(
+//                             'Language Settings',
+//                             style: TextStyle(
+//                               fontSize: 18,
+//                               fontWeight: FontWeight.bold,
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                       const SizedBox(height: 16),
+
+//                       // ⭐ Input Language Dropdown
+//                       const Text(
+//                         'Story Input Language',
+//                         style: TextStyle(
+//                           fontSize: 14,
+//                           fontWeight: FontWeight.w600,
+//                           color: Colors.black87,
+//                         ),
+//                       ),
+//                       const SizedBox(height: 8),
+//                       Container(
+//                         padding: const EdgeInsets.symmetric(horizontal: 12),
+//                         decoration: BoxDecoration(
+//                           color: Colors.blue.shade50,
+//                           borderRadius: BorderRadius.circular(10),
+//                           border: Border.all(color: Colors.blue.shade200),
+//                         ),
+//                         child: DropdownButtonHideUnderline(
+//                           child: DropdownButton<String>(
+//                             value: _selectedInputLanguage,
+//                             isExpanded: true,
+//                             icon: const Icon(Icons.keyboard_arrow_down, color: Colors.blue),
+//                             style: const TextStyle(
+//                               fontSize: 15,
+//                               color: Colors.black87,
+//                             ),
+//                             items: _languageOptions.map((lang) {
+//                               return DropdownMenuItem<String>(
+//                                 value: lang['code'],
+//                                 child: Row(
+//                                   children: [
+//                                     const Icon(Icons.edit, size: 18, color: Colors.blue),
+//                                     const SizedBox(width: 10),
+//                                     Text('${lang['name']} (${lang['native']})'),
+//                                   ],
+//                                 ),
+//                               );
+//                             }).toList(),
+//                             onChanged: (String? newValue) {
+//                               setState(() {
+//                                 _selectedInputLanguage = newValue ?? 'english';
+//                               });
+//                             },
+//                           ),
+//                         ),
+//                       ),
+                      
+//                       const SizedBox(height: 16),
+
+//                       // ⭐ Output Language Dropdown
+//                       const Text(
+//                         'Video Audio Language',
+//                         style: TextStyle(
+//                           fontSize: 14,
+//                           fontWeight: FontWeight.w600,
+//                           color: Colors.black87,
+//                         ),
+//                       ),
+//                       const SizedBox(height: 8),
+//                       Container(
+//                         padding: const EdgeInsets.symmetric(horizontal: 12),
+//                         decoration: BoxDecoration(
+//                           color: Colors.green.shade50,
+//                           borderRadius: BorderRadius.circular(10),
+//                           border: Border.all(color: Colors.green.shade200),
+//                         ),
+//                         child: DropdownButtonHideUnderline(
+//                           child: DropdownButton<String>(
+//                             value: _selectedOutputLanguage,
+//                             isExpanded: true,
+//                             icon: const Icon(Icons.keyboard_arrow_down, color: Colors.green),
+//                             style: const TextStyle(
+//                               fontSize: 15,
+//                               color: Colors.black87,
+//                             ),
+//                             items: _languageOptions.map((lang) {
+//                               return DropdownMenuItem<String>(
+//                                 value: lang['code'],
+//                                 child: Row(
+//                                   children: [
+//                                     const Icon(Icons.volume_up, size: 18, color: Colors.green),
+//                                     const SizedBox(width: 10),
+//                                     Text('${lang['name']} (${lang['native']})'),
+//                                   ],
+//                                 ),
+//                               );
+//                             }).toList(),
+//                             onChanged: (String? newValue) {
+//                               setState(() {
+//                                 _selectedOutputLanguage = newValue ?? 'english';
+//                               });
+//                             },
+//                           ),
+//                         ),
+//                       ),
+
+//                       // ⭐ Info Box
+//                       const SizedBox(height: 12),
+//                       Container(
+//                         padding: const EdgeInsets.all(12),
+//                         decoration: BoxDecoration(
+//                           color: Colors.amber.shade50,
+//                           borderRadius: BorderRadius.circular(8),
+//                           border: Border.all(color: Colors.amber.shade200),
+//                         ),
+//                         child: Row(
+//                           children: [
+//                             Icon(Icons.info_outline, color: Colors.amber.shade800, size: 20),
+//                             const SizedBox(width: 8),
+//                             Expanded(
+//                               child: Text(
+//                                 'Write in ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}, '
+//                                 'hear in ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+//                                 style: TextStyle(
+//                                   fontSize: 12,
+//                                   color: Colors.amber.shade900,
+//                                 ),
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ),
+
+//               const SizedBox(height: 20),
+
+//               // ===== Public/Private Toggle =====
+//               SwitchListTile(
+//                 title: const Text('Make Story Public'),
+//                 subtitle: const Text('Others can see this story'),
+//                 value: _isPublic,
+//                 activeColor: Colors.blue,
+//                 onChanged: (val) {
+//                   setState(() {
+//                     _isPublic = val;
+//                   });
+//                 },
+//               ),
+
+//               const SizedBox(height: 20),
+
+//               // ===== Story Text Box =====
+//               // const Text(
+//               //   'Your Story',
+//               //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//               // ),
+//                 Row(
+//                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                 children: [
+
+//                   const Text(
+//                     'Your Story',
+//                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                   ),
+
+//                   ElevatedButton.icon(
+//                     onPressed: _openChatbot,
+//                     icon: const Icon(Icons.auto_awesome),
+//                     label: const Text("AI Story"),
+//                     style: ElevatedButton.styleFrom(
+//                       backgroundColor: Colors.deepPurple,
+//                       foregroundColor: Colors.white,
+//                       shape: RoundedRectangleBorder(
+//                         borderRadius: BorderRadius.circular(20),
+//                       ),
+//                     ),
+//                   ),
+
+//                 ],
+//               ),
+//               const SizedBox(height: 10),
+
+//               // ⭐ Changed: Fixed height instead of Expanded
+//               Container(
+//                 height: 300,  // Fixed height
+//                 decoration: BoxDecoration(
+//                   border: Border.all(color: Colors.grey.shade300),
+//                   borderRadius: BorderRadius.circular(12),
+//                 ),
+//                 child: TextField(
+//                   controller: _storyController,
+//                   maxLines: null,
+//                   expands: true,
+//                   textAlignVertical: TextAlignVertical.top,
+//                   decoration: InputDecoration(
+//                     hintText: _getPlaceholderText(),  // ⭐ Dynamic placeholder
+//                     border: OutlineInputBorder(
+//                       borderRadius: BorderRadius.circular(12),
+//                       borderSide: BorderSide.none,
+//                     ),
+//                     filled: true,
+//                     fillColor: Colors.grey.shade50,
+//                     contentPadding: const EdgeInsets.all(16),
+//                   ),
+//                 ),
+//               ),
+              
+//               const SizedBox(height: 20),
+
+//               // ===== Submit Button =====
+//               SizedBox(
+//                 width: double.infinity,
+//                 height: 55,
+//                 child: ElevatedButton.icon(
+//                   onPressed: () async {
+//                     final storyText = _storyController.text.trim();
+//                     if (storyText.isEmpty) {
+//                       ScaffoldMessenger.of(context).showSnackBar(
+//                         const SnackBar(
+//                           content: Text('Please write a story first!'),
+//                           backgroundColor: Colors.orange,
+//                         ),
+//                       );
+//                       return;
+//                     }
+
+//                     // Show loading dialog
+//                     showDialog(
+//                       context: context,
+//                       barrierDismissible: false,
+//                       builder: (_) => Center(
+//                         child: Container(
+//                           padding: const EdgeInsets.all(24),
+//                           decoration: BoxDecoration(
+//                             color: Colors.white,
+//                             borderRadius: BorderRadius.circular(16),
+//                           ),
+//                           child: Column(
+//                             mainAxisSize: MainAxisSize.min,
+//                             children: [
+//                               const CircularProgressIndicator(),
+//                               const SizedBox(height: 20),
+//                               Text(
+//                                 'Generating Video',
+//                                 style: const TextStyle(
+//                                   fontSize: 18,
+//                                   fontWeight: FontWeight.bold,
+//                                 ),
+//                               ),
+//                               const SizedBox(height: 8),
+//                               Text(
+//                                 'Input: ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}',
+//                                 style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+//                               ),
+//                               Text(
+//                                 'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+//                                 style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+//                               ),
+//                               const SizedBox(height: 8),
+//                               Text(
+//                                 'This may take 3-5 minutes...',
+//                                 style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ),
+//                     );
+
+//                     // ⭐ Generate video with BOTH languages
+//                     final videoResults = await _generateVideoFromBackend(
+//                       storyText,
+//                       _selectedInputLanguage,   // What language you wrote in
+//                       _selectedOutputLanguage,  // What language for audio
+//                     );
+
+//                     Navigator.pop(context); // Remove loading dialog
+
+//                     if (videoResults == null || videoResults['video_url'] == null) {
+//                       ScaffoldMessenger.of(context).showSnackBar(
+//                         const SnackBar(
+//                           content: Text("Failed to generate video"),
+//                           backgroundColor: Colors.red,
+//                         ),
+//                       );
+//                       return;
+//                     }
+
+//                     final videoUrl = videoResults['video_url'];
+//                     final coverUrl = videoResults['cover_url'];
+//                     final title = videoResults['title'] ?? 'Untitled';
+//                     final genre = videoResults['genre'] ?? 'General';
+
+//                     // Submit story to database
+//                     final res = await _submitStory(videoUrl, coverUrl, title, genre);
+
+//                     if (res['success'] == true) {
+//                       Navigator.push(
+//                         context,
+//                         MaterialPageRoute(
+//                           builder: (context) => StoryDisplayPage(videoUrl: videoUrl!),
+//                         ),
+//                       );
+//                     } else {
+//                       ScaffoldMessenger.of(context).showSnackBar(
+//                         SnackBar(
+//                           content: Text(res['message'] ?? 'Failed to create story'),
+//                           backgroundColor: Colors.red,
+//                         ),
+//                       );
+//                     }
+//                   },
+//                   style: ElevatedButton.styleFrom(
+//                     backgroundColor: Colors.blue,
+//                     foregroundColor: Colors.white,
+//                     shape: RoundedRectangleBorder(
+//                       borderRadius: BorderRadius.circular(12),
+//                     ),
+//                     elevation: 3,
+//                   ),
+//                   icon: const Icon(Icons.send, size: 24),
+//                   label: const Text(
+//                     'Generate & Submit Story',
+//                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                   ),
+//                 ),
+//               ),
+              
+//               const SizedBox(height: 20),  // Bottom padding
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+
+
+// import 'package:flutter/material.dart';
+// import 'package:image_picker/image_picker.dart';
+// import 'dart:typed_data';
+// import 'story_display_page.dart';
+// import 'navbar.dart';
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
+// import '../services/story_serviceFront.dart';
+// import '../screens/ai_chatbot_modal.dart';
+
+// class WriteStoryPage extends StatefulWidget {
+//   final List<Map<String, String>> selectedCharacters;
+//   const WriteStoryPage({
+//     super.key,
+//     required this.selectedCharacters,
+//   });
+
+//   @override
+//   State<WriteStoryPage> createState() => _WriteStoryPageState();
+// }
+
+// class _WriteStoryPageState extends State<WriteStoryPage> {
+//   void _openChatbot() {
+//     showModalBottomSheet(
+//       context: context,
+//       isScrollControlled: true,
+//       backgroundColor: Colors.transparent,
+//       builder: (_) {
+//         return AIChatbotModal(
+//           onInsertStory: (story) {
+//             setState(() {
+//               _storyController.text = story;
+//             });
+//           },
+//         );
+//       },
+//     );
+//   }
+
+//   final TextEditingController _storyController = TextEditingController();
+//   final List<Uint8List> _uploadedImageBytes = [];
+
+//   String _selectedInputLanguage = 'english';
+//   String _selectedOutputLanguage = 'english';
+
+//   bool _isPublic = true;
+//   List<Map<String, String>> _selectedCharacters = [];
+
+//   final List<Map<String, String>> _languageOptions = [
+//     {'code': 'english', 'name': 'English', 'native': 'English'},
+//     {'code': 'hindi', 'name': 'Hindi', 'native': 'हिन्दी'},
+//     {'code': 'tamil', 'name': 'Tamil', 'native': 'தமிழ்'},
+//     {'code': 'telugu', 'name': 'Telugu', 'native': 'తెలుగు'},
+//     {'code': 'malayalam', 'name': 'Malayalam', 'native': 'മലയാളം'},
+//     {'code': 'kannada', 'name': 'Kannada', 'native': 'ಕನ್ನಡ'},
+//     {'code': 'bengali', 'name': 'Bengali', 'native': 'বাংলা'},
+//     {'code': 'gujarati', 'name': 'Gujarati', 'native': 'ગુજરાતી'},
+//     {'code': 'marathi', 'name': 'Marathi', 'native': 'मराठी'},
+//     {'code': 'punjabi', 'name': 'Punjabi', 'native': 'ਪੰਜਾਬੀ'},
+//     {'code': 'odia', 'name': 'Odia', 'native': 'ଓଡ଼ିଆ'},
+//     {'code': 'assamese', 'name': 'Assamese', 'native': 'অসমীয়া'},
+//   ];
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _selectedCharacters = List.from(widget.selectedCharacters);
+//   }
+
+//   @override
+//   void dispose() {
+//     _storyController.dispose();
+//     super.dispose();
+//   }
+
+//   Future<void> _pickImagesFromDevice() async {
+//     final ImagePicker picker = ImagePicker();
+//     final List<XFile> images = await picker.pickMultiImage();
+//     if (images.isNotEmpty) {
+//       for (final xfile in images) {
+//         final bytes = await xfile.readAsBytes();
+//         setState(() {
+//           _uploadedImageBytes.add(bytes);
+//         });
+//       }
+//     }
+//   }
+
+//   Future<Map<String, String?>?> _generateVideoFromBackend(
+//     String storyText,
+//     String inputLang,
+//     String outputLang,
+//   ) async {
+//     try {
+//       final uri = Uri.parse('http://127.0.0.1:8000/videos/generate');
+//       print('Sending request to: $uri');
+//       print('Input Language: $inputLang');
+//       print('Output Language: $outputLang');
+
+//       final response = await http.post(
+//         uri,
+//         headers: {'Content-Type': 'application/json'},
+//         body: jsonEncode({
+//           'story': storyText,
+//           'input_language': inputLang,
+//           'output_language': outputLang,
+//         }),
+//       );
+
+//       print('Response status: ${response.statusCode}');
+
+//       if (response.statusCode == 200) {
+//         final data = jsonDecode(response.body);
+//         print('Video URL: ${data['video_path']}');
+//         print('Cover URL: ${data['cover_image']}');
+//         print('Title: ${data['title']}');
+//         print('Genre: ${data['genre']}');
+
+//         return {
+//           'video_url': data['video_path'] ?? data['video_url'],
+//           'cover_url': data['cover_image'] ?? data['cover_url'],
+//           'title': data['title'] ?? 'Untitled',
+//           'genre': data['genre'] ?? 'General',
+//         };
+//       } else {
+//         print('Error response: ${response.body}');
+//         return null;
+//       }
+//     } catch (e) {
+//       print('Exception in _generateVideoFromBackend: $e');
+//       return null;
+//     }
+//   }
+
+//   Future<Map<String, dynamic>> _submitStory(
+//       String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre) async {
+//     final storyText = _storyController.text.trim();
+
+//     if (storyText.isEmpty) {
+//       return {'success': false, 'message': 'Please write your story before submitting'};
+//     }
+
+//     final String titleToSend = (storyTitle != null && storyTitle.trim().isNotEmpty)
+//         ? storyTitle.trim()
+//         : (storyText.isNotEmpty
+//             ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText)
+//             : 'Untitled');
+
+//     final String genreToSend =
+//         (storyGenre != null && storyGenre.trim().isNotEmpty) ? storyGenre.trim() : 'General';
+
+//     final res = await StoryService.createStory(
+//       title: titleToSend,
+//       description: storyText,
+//       language: _selectedOutputLanguage,
+//       displayFlag: _isPublic,
+//       genre: genreToSend,
+//       videoUrl: videoUrl,
+//       coverUrl: coverUrl,
+//     );
+
+//     return res;
+//   }
+
+//   String _getPlaceholderText() {
+//     final placeholders = {
+//       'english': 'Once upon a time...',
+//       'hindi': 'एक समय की बात है...',
+//       'tamil': 'ஒரு காலத்தில்...',
+//       'telugu': 'ఒకప్పుడు...',
+//       'malayalam': 'ഒരു കാലത്ത്...',
+//       'kannada': 'ಒಂದು ಕಾಲದಲ್ಲಿ...',
+//       'bengali': 'এক সময়...',
+//       'gujarati': 'એક વખત...',
+//       'marathi': 'एकदा...',
+//       'punjabi': 'ਇੱਕ ਵਾਰ...',
+//       'odia': 'ଏକଥର...',
+//       'assamese': 'এবাৰ...',
+//     };
+//     return placeholders[_selectedInputLanguage] ?? 'Write your story here...';
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: Navbar(currentPage: 'home'),
+
+//       // ─────────────────────────────────────────────
+//       // ✅ BACKGROUND IMAGE — only change from original
+//       // Replace 'assets/images/write_story_bg.png' with
+//       // whatever asset path you have in your project.
+//       // ─────────────────────────────────────────────
+//       body: Container(
+//         decoration: const BoxDecoration(
+//           image: DecorationImage(
+//             image: AssetImage('images/create_story_bg.png'),
+//             fit: BoxFit.fill,         // fills the whole screen
+//             // colorFilter: ColorFilter.mode(
+//               // Color(0xBBFFFFFF),        // white overlay at ~73% opacity
+//               // BlendMode.lighten,        // keeps the image subtle so text stays readable
+//             // ),
+//           ),
+//         ),
+//         // ─────────────────────────────────────────────
+//         // Everything below is identical to the original
+//         // ─────────────────────────────────────────────
+//         child: SingleChildScrollView(
+//           child: Padding(
+//             padding: const EdgeInsets.all(20),
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 // ===== Selected Characters Preview =====
+//                 if (_selectedCharacters.isNotEmpty) ...[
+//                   const Text(
+//                     'Selected Characters',
+//                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                   ),
+//                   const SizedBox(height: 10),
+//                   SizedBox(
+//                     height: 90,
+//                     child: ListView.separated(
+//                       scrollDirection: Axis.horizontal,
+//                       itemCount: _selectedCharacters.length,
+//                       separatorBuilder: (_, __) => const SizedBox(width: 12),
+//                       itemBuilder: (context, index) {
+//                         final character = _selectedCharacters[index];
+//                         return Column(
+//                           mainAxisSize: MainAxisSize.min,
+//                           children: [
+//                             Stack(
+//                               children: [
+//                                 ClipRRect(
+//                                   borderRadius: BorderRadius.circular(10),
+//                                   child: Image.asset(
+//                                     character['image']!,
+//                                     width: 56,
+//                                     height: 56,
+//                                     fit: BoxFit.cover,
+//                                   ),
+//                                 ),
+//                                 Positioned(
+//                                   top: 0,
+//                                   right: 0,
+//                                   child: GestureDetector(
+//                                     onTap: () {
+//                                       setState(() {
+//                                         _selectedCharacters.removeAt(index);
+//                                       });
+//                                     },
+//                                     child: Container(
+//                                       decoration: const BoxDecoration(
+//                                         color: Colors.black54,
+//                                         shape: BoxShape.circle,
+//                                       ),
+//                                       child: const Icon(Icons.close,
+//                                           size: 14, color: Colors.white),
+//                                     ),
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                             const SizedBox(height: 4),
+//                             Text(
+//                               character['name']!,
+//                               style: const TextStyle(fontSize: 11),
+//                             ),
+//                           ],
+//                         );
+//                       },
+//                     ),
+//                   ),
+//                   const SizedBox(height: 16),
+//                 ],
+
+//                 const SizedBox(height: 20),
+
+//                 // ===== Language Selection Card =====
+//                 Card(
+//                   elevation: 3,
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(12),
+//                   ),
+//                   child: Padding(
+//                     padding: const EdgeInsets.all(16),
+//                     child: Column(
+//                       crossAxisAlignment: CrossAxisAlignment.start,
+//                       children: [
+//                         Row(
+//                           children: [
+//                             Icon(Icons.language, color: Colors.blue.shade700, size: 24),
+//                             const SizedBox(width: 8),
+//                             const Text(
+//                               'Language Settings',
+//                               style: TextStyle(
+//                                 fontSize: 18,
+//                                 fontWeight: FontWeight.bold,
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                         const SizedBox(height: 16),
+
+//                         // Input Language Dropdown
+//                         const Text(
+//                           'Story Input Language',
+//                           style: TextStyle(
+//                             fontSize: 14,
+//                             fontWeight: FontWeight.w600,
+//                             color: Colors.black87,
+//                           ),
+//                         ),
+//                         const SizedBox(height: 8),
+//                         Container(
+//                           padding: const EdgeInsets.symmetric(horizontal: 12),
+//                           decoration: BoxDecoration(
+//                             color: Colors.blue.shade50,
+//                             borderRadius: BorderRadius.circular(10),
+//                             border: Border.all(color: Colors.blue.shade200),
+//                           ),
+//                           child: DropdownButtonHideUnderline(
+//                             child: DropdownButton<String>(
+//                               value: _selectedInputLanguage,
+//                               isExpanded: true,
+//                               icon: const Icon(Icons.keyboard_arrow_down, color: Colors.blue),
+//                               style: const TextStyle(
+//                                 fontSize: 15,
+//                                 color: Colors.black87,
+//                               ),
+//                               items: _languageOptions.map((lang) {
+//                                 return DropdownMenuItem<String>(
+//                                   value: lang['code'],
+//                                   child: Row(
+//                                     children: [
+//                                       const Icon(Icons.edit, size: 18, color: Colors.blue),
+//                                       const SizedBox(width: 10),
+//                                       Text('${lang['name']} (${lang['native']})'),
+//                                     ],
+//                                   ),
+//                                 );
+//                               }).toList(),
+//                               onChanged: (String? newValue) {
+//                                 setState(() {
+//                                   _selectedInputLanguage = newValue ?? 'english';
+//                                 });
+//                               },
+//                             ),
+//                           ),
+//                         ),
+
+//                         const SizedBox(height: 16),
+
+//                         // Output Language Dropdown
+//                         const Text(
+//                           'Video Audio Language',
+//                           style: TextStyle(
+//                             fontSize: 14,
+//                             fontWeight: FontWeight.w600,
+//                             color: Colors.black87,
+//                           ),
+//                         ),
+//                         const SizedBox(height: 8),
+//                         Container(
+//                           padding: const EdgeInsets.symmetric(horizontal: 12),
+//                           decoration: BoxDecoration(
+//                             color: Colors.green.shade50,
+//                             borderRadius: BorderRadius.circular(10),
+//                             border: Border.all(color: Colors.green.shade200),
+//                           ),
+//                           child: DropdownButtonHideUnderline(
+//                             child: DropdownButton<String>(
+//                               value: _selectedOutputLanguage,
+//                               isExpanded: true,
+//                               icon: const Icon(Icons.keyboard_arrow_down, color: Colors.green),
+//                               style: const TextStyle(
+//                                 fontSize: 15,
+//                                 color: Colors.black87,
+//                               ),
+//                               items: _languageOptions.map((lang) {
+//                                 return DropdownMenuItem<String>(
+//                                   value: lang['code'],
+//                                   child: Row(
+//                                     children: [
+//                                       const Icon(Icons.volume_up, size: 18, color: Colors.green),
+//                                       const SizedBox(width: 10),
+//                                       Text('${lang['name']} (${lang['native']})'),
+//                                     ],
+//                                   ),
+//                                 );
+//                               }).toList(),
+//                               onChanged: (String? newValue) {
+//                                 setState(() {
+//                                   _selectedOutputLanguage = newValue ?? 'english';
+//                                 });
+//                               },
+//                             ),
+//                           ),
+//                         ),
+
+//                         // Info Box
+//                         const SizedBox(height: 12),
+//                         Container(
+//                           padding: const EdgeInsets.all(12),
+//                           decoration: BoxDecoration(
+//                             color: Colors.amber.shade50,
+//                             borderRadius: BorderRadius.circular(8),
+//                             border: Border.all(color: Colors.amber.shade200),
+//                           ),
+//                           child: Row(
+//                             children: [
+//                               Icon(Icons.info_outline,
+//                                   color: Colors.amber.shade800, size: 20),
+//                               const SizedBox(width: 8),
+//                               Expanded(
+//                                 child: Text(
+//                                   'Write in ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}, '
+//                                   'hear in ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+//                                   style: TextStyle(
+//                                     fontSize: 12,
+//                                     color: Colors.amber.shade900,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 // ===== Public/Private Toggle =====
+//                 SwitchListTile(
+//                   title: const Text('Make Story Public'),
+//                   subtitle: const Text('Others can see this story'),
+//                   value: _isPublic,
+//                   activeColor: Colors.blue,
+//                   onChanged: (val) {
+//                     setState(() {
+//                       _isPublic = val;
+//                     });
+//                   },
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 // ===== Story Text Box =====
+//                 Row(
+//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                   children: [
+//                     const Text(
+//                       'Your Story',
+//                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                     ),
+//                     ElevatedButton.icon(
+//                       onPressed: _openChatbot,
+//                       icon: const Icon(Icons.auto_awesome),
+//                       label: const Text("AI Story"),
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: Colors.deepPurple,
+//                         foregroundColor: Colors.white,
+//                         shape: RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.circular(20),
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//                 const SizedBox(height: 10),
+
+//                 Container(
+//                   height: 300,
+//                   decoration: BoxDecoration(
+//                     border: Border.all(color: Colors.grey.shade300),
+//                     borderRadius: BorderRadius.circular(12),
+//                   ),
+//                   child: TextField(
+//                     controller: _storyController,
+//                     maxLines: null,
+//                     expands: true,
+//                     textAlignVertical: TextAlignVertical.top,
+//                     decoration: InputDecoration(
+//                       hintText: _getPlaceholderText(),
+//                       border: OutlineInputBorder(
+//                         borderRadius: BorderRadius.circular(12),
+//                         borderSide: BorderSide.none,
+//                       ),
+//                       filled: true,
+//                       fillColor: Colors.grey.shade50,
+//                       contentPadding: const EdgeInsets.all(16),
+//                     ),
+//                   ),
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 // ===== Submit Button =====
+//                 SizedBox(
+//                   width: double.infinity,
+//                   height: 55,
+//                   child: ElevatedButton.icon(
+//                     onPressed: () async {
+//                       final storyText = _storyController.text.trim();
+//                       if (storyText.isEmpty) {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(
+//                             content: Text('Please write a story first!'),
+//                             backgroundColor: Colors.orange,
+//                           ),
+//                         );
+//                         return;
+//                       }
+
+//                       showDialog(
+//                         context: context,
+//                         barrierDismissible: false,
+//                         builder: (_) => Center(
+//                           child: Container(
+//                             padding: const EdgeInsets.all(24),
+//                             decoration: BoxDecoration(
+//                               color: Colors.white,
+//                               borderRadius: BorderRadius.circular(16),
+//                             ),
+//                             child: Column(
+//                               mainAxisSize: MainAxisSize.min,
+//                               children: [
+//                                 const CircularProgressIndicator(),
+//                                 const SizedBox(height: 20),
+//                                 const Text(
+//                                   'Generating Video',
+//                                   style: TextStyle(
+//                                     fontSize: 18,
+//                                     fontWeight: FontWeight.bold,
+//                                   ),
+//                                 ),
+//                                 const SizedBox(height: 8),
+//                                 Text(
+//                                   'Input: ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}',
+//                                   style: TextStyle(
+//                                       fontSize: 14, color: Colors.grey.shade700),
+//                                 ),
+//                                 Text(
+//                                   'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+//                                   style: TextStyle(
+//                                       fontSize: 14, color: Colors.grey.shade700),
+//                                 ),
+//                                 const SizedBox(height: 8),
+//                                 Text(
+//                                   'This may take 3-5 minutes...',
+//                                   style: TextStyle(
+//                                       fontSize: 12, color: Colors.grey.shade500),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ),
+//                       );
+
+//                       final videoResults = await _generateVideoFromBackend(
+//                         storyText,
+//                         _selectedInputLanguage,
+//                         _selectedOutputLanguage,
+//                       );
+
+//                       Navigator.pop(context);
+
+//                       if (videoResults == null || videoResults['video_url'] == null) {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(
+//                             content: Text("Failed to generate video"),
+//                             backgroundColor: Colors.red,
+//                           ),
+//                         );
+//                         return;
+//                       }
+
+//                       final videoUrl = videoResults['video_url'];
+//                       final coverUrl = videoResults['cover_url'];
+//                       final title = videoResults['title'] ?? 'Untitled';
+//                       final genre = videoResults['genre'] ?? 'General';
+
+//                       final res = await _submitStory(videoUrl, coverUrl, title, genre);
+
+//                       if (res['success'] == true) {
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) =>
+//                                 StoryDisplayPage(videoUrl: videoUrl!),
+//                           ),
+//                         );
+//                       } else {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           SnackBar(
+//                             content: Text(
+//                                 res['message'] ?? 'Failed to create story'),
+//                             backgroundColor: Colors.red,
+//                           ),
+//                         );
+//                       }
+//                     },
+//                     style: ElevatedButton.styleFrom(
+//                       backgroundColor: Colors.blue,
+//                       foregroundColor: Colors.white,
+//                       shape: RoundedRectangleBorder(
+//                         borderRadius: BorderRadius.circular(12),
+//                       ),
+//                       elevation: 3,
+//                     ),
+//                     icon: const Icon(Icons.send, size: 24),
+//                     label: const Text(
+//                       'Generate & Submit Story',
+//                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                     ),
+//                   ),
+//                 ),
+
+//                 const SizedBox(height: 20),
+//               ],
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+
+// import 'package:flutter/material.dart';
+// import 'package:image_picker/image_picker.dart';
+// import 'dart:typed_data';
+// import 'story_display_page.dart';
+// import 'navbar.dart';
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
+// import '../services/story_serviceFront.dart';
+// import '../screens/ai_chatbot_modal.dart';
+
+// class WriteStoryPage extends StatefulWidget {
+//   final List<Map<String, String>> selectedCharacters;
+//   const WriteStoryPage({
+//     super.key,
+//     required this.selectedCharacters,
+//   });
+
+//   @override
+//   State<WriteStoryPage> createState() => _WriteStoryPageState();
+// }
+
+// class _WriteStoryPageState extends State<WriteStoryPage> {
+//   void _openChatbot() {
+//     showModalBottomSheet(
+//       context: context,
+//       isScrollControlled: true,
+//       backgroundColor: Colors.transparent,
+//       builder: (_) {
+//         return AIChatbotModal(
+//           onInsertStory: (story) {
+//             setState(() {
+//               _storyController.text = story;
+//             });
+//           },
+//         );
+//       },
+//     );
+//   }
+
+//   final TextEditingController _storyController = TextEditingController();
+//   final List<Uint8List> _uploadedImageBytes = [];
+
+//   String _selectedInputLanguage = 'english';
+//   String _selectedOutputLanguage = 'english';
+
+//   bool _isPublic = true;
+//   List<Map<String, String>> _selectedCharacters = [];
+
+//   final List<Map<String, String>> _languageOptions = [
+//     {'code': 'english', 'name': 'English', 'native': 'English'},
+//     {'code': 'hindi', 'name': 'Hindi', 'native': 'हिन्दी'},
+//     {'code': 'tamil', 'name': 'Tamil', 'native': 'தமிழ்'},
+//     {'code': 'telugu', 'name': 'Telugu', 'native': 'తెలుగు'},
+//     {'code': 'malayalam', 'name': 'Malayalam', 'native': 'മലയാളം'},
+//     {'code': 'kannada', 'name': 'Kannada', 'native': 'ಕನ್ನಡ'},
+//     {'code': 'bengali', 'name': 'Bengali', 'native': 'বাংলা'},
+//     {'code': 'gujarati', 'name': 'Gujarati', 'native': 'ગુજરાতી'},
+//     {'code': 'marathi', 'name': 'Marathi', 'native': 'मराठी'},
+//     {'code': 'punjabi', 'name': 'Punjabi', 'native': 'ਪੰਜਾਬੀ'},
+//     {'code': 'odia', 'name': 'Odia', 'native': 'ଓଡ଼ିଆ'},
+//     {'code': 'assamese', 'name': 'Assamese', 'native': 'অসমੀਆ'},
+//   ];
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _selectedCharacters = List.from(widget.selectedCharacters);
+//   }
+
+//   @override
+//   void dispose() {
+//     _storyController.dispose();
+//     super.dispose();
+//   }
+
+//   Future<void> _pickImagesFromDevice() async {
+//     final ImagePicker picker = ImagePicker();
+//     final List<XFile> images = await picker.pickMultiImage();
+//     if (images.isNotEmpty) {
+//       for (final xfile in images) {
+//         final bytes = await xfile.readAsBytes();
+//         setState(() {
+//           _uploadedImageBytes.add(bytes);
+//         });
+//       }
+//     }
+//   }
+
+//   Future<Map<String, String?>?> _generateVideoFromBackend(
+//     String storyText,
+//     String inputLang,
+//     String outputLang,
+//   ) async {
+//     try {
+//       final uri = Uri.parse('http://127.0.0.1:8000/videos/generate');
+//       print('Sending request to: $uri');
+//       print('Input Language: $inputLang');
+//       print('Output Language: $outputLang');
+
+//       final response = await http.post(
+//         uri,
+//         headers: {'Content-Type': 'application/json'},
+//         body: jsonEncode({
+//           'story': storyText,
+//           'input_language': inputLang,
+//           'output_language': outputLang,
+//         }),
+//       );
+
+//       print('Response status: ${response.statusCode}');
+
+//       if (response.statusCode == 200) {
+//         final data = jsonDecode(response.body);
+//         print('Video URL: ${data['video_path']}');
+//         print('Cover URL: ${data['cover_image']}');
+//         print('Title: ${data['title']}');
+//         print('Genre: ${data['genre']}');
+
+//         return {
+//           'video_url': data['video_path'] ?? data['video_url'],
+//           'cover_url': data['cover_image'] ?? data['cover_url'],
+//           'title': data['title'] ?? 'Untitled',
+//           'genre': data['genre'] ?? 'General',
+//         };
+//       } else {
+//         print('Error response: ${response.body}');
+//         return null;
+//       }
+//     } catch (e) {
+//       print('Exception in _generateVideoFromBackend: $e');
+//       return null;
+//     }
+//   }
+
+//   Future<Map<String, dynamic>> _submitStory(
+//       String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre) async {
+//     final storyText = _storyController.text.trim();
+
+//     if (storyText.isEmpty) {
+//       return {'success': false, 'message': 'Please write your story before submitting'};
+//     }
+
+//     final String titleToSend = (storyTitle != null && storyTitle.trim().isNotEmpty)
+//         ? storyTitle.trim()
+//         : (storyText.isNotEmpty
+//             ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText)
+//             : 'Untitled');
+
+//     final String genreToSend =
+//         (storyGenre != null && storyGenre.trim().isNotEmpty) ? storyGenre.trim() : 'General';
+
+//     final res = await StoryService.createStory(
+//       title: titleToSend,
+//       description: storyText,
+//       language: _selectedOutputLanguage,
+//       displayFlag: _isPublic,
+//       genre: genreToSend,
+//       videoUrl: videoUrl,
+//       coverUrl: coverUrl,
+//     );
+
+//     return res;
+//   }
+
+//   String _getPlaceholderText() {
+//     final placeholders = {
+//       'english': 'Once upon a time...',
+//       'hindi': 'एक समय की बात है...',
+//       'tamil': 'ஒரு காலத்தில்...',
+//       'telugu': 'ఒకప్పుడు...',
+//       'malayalam': 'ഒരു കാലത്ത്...',
+//       'kannada': 'ಒಂದು ಕಾಲದಲ್ಲಿ...',
+//       'bengali': 'এক সময়...',
+//       'gujarati': 'એক વખત...',
+//       'marathi': 'एकदा...',
+//       'punjabi': 'ਇੱਕ ਵਾਰ...',
+//       'odia': 'ଏକଥର...',
+//       'assamese': 'এবাৰ...',
+//     };
+//     return placeholders[_selectedInputLanguage] ?? 'Write your story here...';
+//   }
+
+//   Widget _buildCompactDropdown({
+//     required String label,
+//     required IconData icon,
+//     required Color iconColor,
+//     required Color bgColor,
+//     required Color borderColor,
+//     required String value,
+//     required ValueChanged<String?> onChanged,
+//   }) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       mainAxisSize: MainAxisSize.min,
+//       children: [
+//         Row(
+//           children: [
+//             Icon(icon, size: 13, color: iconColor),
+//             const SizedBox(width: 4),
+//             Text(
+//               label,
+//               style: TextStyle(
+//                 fontSize: 11,
+//                 fontWeight: FontWeight.w700,
+//                 color: iconColor,
+//                 letterSpacing: 0.2,
+//               ),
+//             ),
+//           ],
+//         ),
+//         const SizedBox(height: 5),
+//         Container(
+//           padding: const EdgeInsets.symmetric(horizontal: 8),
+//           decoration: BoxDecoration(
+//             color: bgColor,
+//             borderRadius: BorderRadius.circular(10),
+//             border: Border.all(color: borderColor),
+//           ),
+//           child: DropdownButtonHideUnderline(
+//             child: DropdownButton<String>(
+//               value: value,
+//               isExpanded: true,
+//               isDense: true,
+//               icon: Icon(Icons.keyboard_arrow_down, color: iconColor, size: 18),
+//               style: const TextStyle(fontSize: 12, color: Colors.black87),
+//               items: _languageOptions.map((lang) {
+//                 return DropdownMenuItem<String>(
+//                   value: lang['code'],
+//                   child: Text(lang['name']!),
+//                 );
+//               }).toList(),
+//               onChanged: onChanged,
+//             ),
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     // ✅ FIX: SingleChildScrollView is now the direct body child.
+//     // The decorated Container lives INSIDE the scroll view with a
+//     // minHeight constraint — so the background always covers at least
+//     // the full viewport and also extends as the content grows, leaving
+//     // no white gap at the bottom.
+//     return Scaffold(
+//       appBar: Navbar(currentPage: 'home'),
+//       body: SingleChildScrollView(
+//         child: Container(
+//           // ✅ FIX 1 — top margin creates a small gap between navbar
+//           //            and the background image so they don't merge.
+//           // ✅ FIX 2 — minHeight ensures the background fills the full
+//           //            screen even when content is short, AND it keeps
+//           //            growing with content so there's never a white
+//           //            area at the bottom while scrolling.
+//           constraints: BoxConstraints(
+//             minHeight: MediaQuery.of(context).size.height,
+//           ),
+//           margin: const EdgeInsets.only(top: 2), // ← gap below navbar
+//           decoration: const BoxDecoration(
+//             image: DecorationImage(
+//               image: AssetImage('images/create_story_bg.png'),
+//               fit: BoxFit.fill,          // covers the full container area
+//               alignment: Alignment.topCenter,
+//             ),
+//           ),
+//           child: Padding(
+//             padding: const EdgeInsets.all(20),
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 // ===== Selected Characters Preview =====
+//                 if (_selectedCharacters.isNotEmpty) ...[
+//                   const Text(
+//                     'Selected Characters',
+//                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                   ),
+//                   const SizedBox(height: 10),
+//                   SizedBox(
+//                     height: 90,
+//                     child: ListView.separated(
+//                       scrollDirection: Axis.horizontal,
+//                       itemCount: _selectedCharacters.length,
+//                       separatorBuilder: (_, __) => const SizedBox(width: 12),
+//                       itemBuilder: (context, index) {
+//                         final character = _selectedCharacters[index];
+//                         return Column(
+//                           mainAxisSize: MainAxisSize.min,
+//                           children: [
+//                             Stack(
+//                               children: [
+//                                 ClipRRect(
+//                                   borderRadius: BorderRadius.circular(10),
+//                                   child: Image.asset(
+//                                     character['image']!,
+//                                     width: 56,
+//                                     height: 56,
+//                                     fit: BoxFit.cover,
+//                                   ),
+//                                 ),
+//                                 Positioned(
+//                                   top: 0,
+//                                   right: 0,
+//                                   child: GestureDetector(
+//                                     onTap: () {
+//                                       setState(() {
+//                                         _selectedCharacters.removeAt(index);
+//                                       });
+//                                     },
+//                                     child: Container(
+//                                       decoration: const BoxDecoration(
+//                                         color: Colors.black54,
+//                                         shape: BoxShape.circle,
+//                                       ),
+//                                       child: const Icon(Icons.close,
+//                                           size: 14, color: Colors.white),
+//                                     ),
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                             const SizedBox(height: 4),
+//                             Text(
+//                               character['name']!,
+//                               style: const TextStyle(fontSize: 11),
+//                             ),
+//                           ],
+//                         );
+//                       },
+//                     ),
+//                   ),
+//                   const SizedBox(height: 16),
+//                 ],
+
+//                 const SizedBox(height: 10),
+
+//                 // ===== Three fields side by side, no card/box =====
+//                 Row(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Expanded(
+//                       child: _buildCompactDropdown(
+//                         label: 'Input Language',
+//                         icon: Icons.edit,
+//                         iconColor: Colors.blue.shade700,
+//                         bgColor: Colors.blue.shade50,
+//                         borderColor: Colors.blue.shade200,
+//                         value: _selectedInputLanguage,
+//                         onChanged: (v) =>
+//                             setState(() => _selectedInputLanguage = v ?? 'english'),
+//                       ),
+//                     ),
+//                     const SizedBox(width: 10),
+//                     Expanded(
+//                       child: _buildCompactDropdown(
+//                         label: 'Audio Language',
+//                         icon: Icons.volume_up,
+//                         iconColor: Colors.green.shade700,
+//                         bgColor: Colors.green.shade50,
+//                         borderColor: Colors.green.shade200,
+//                         value: _selectedOutputLanguage,
+//                         onChanged: (v) =>
+//                             setState(() => _selectedOutputLanguage = v ?? 'english'),
+//                       ),
+//                     ),
+//                     const SizedBox(width: 10),
+//                     Expanded(
+//                       child: Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         mainAxisSize: MainAxisSize.min,
+//                         children: [
+//                           Row(
+//                             children: [
+//                               Icon(Icons.public, size: 13,
+//                                   color: Colors.orange.shade700),
+//                               const SizedBox(width: 4),
+//                               Text(
+//                                 'Visibility',
+//                                 style: TextStyle(
+//                                   fontSize: 11,
+//                                   fontWeight: FontWeight.w700,
+//                                   color: Colors.orange.shade700,
+//                                   letterSpacing: 0.2,
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//                           const SizedBox(height: 5),
+//                           Container(
+//                             padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8, vertical: 2),
+//                             decoration: BoxDecoration(
+//                               color: Colors.orange.shade50,
+//                               borderRadius: BorderRadius.circular(10),
+//                               border: Border.all(color: Colors.orange.shade200),
+//                             ),
+//                             child: Row(
+//                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                               children: [
+//                                 Text(
+//                                   _isPublic ? 'Public' : 'Private',
+//                                   style: TextStyle(
+//                                     fontSize: 12,
+//                                     fontWeight: FontWeight.w600,
+//                                     color: _isPublic
+//                                         ? Colors.orange.shade800
+//                                         : Colors.grey.shade600,
+//                                   ),
+//                                 ),
+//                                 Transform.scale(
+//                                   scale: 0.75,
+//                                   child: Switch(
+//                                     value: _isPublic,
+//                                     activeColor: Colors.orange.shade600,
+//                                     materialTapTargetSize:
+//                                         MaterialTapTargetSize.shrinkWrap,
+//                                     onChanged: (val) =>
+//                                         setState(() => _isPublic = val),
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 // ===== Story Text Box =====
+//                 Row(
+//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                   children: [
+//                     const Text(
+//                       'Your Story',
+//                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                     ),
+//                     ElevatedButton.icon(
+//                       onPressed: _openChatbot,
+//                       icon: const Icon(Icons.auto_awesome),
+//                       label: const Text("AI Story"),
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: Colors.deepPurple,
+//                         foregroundColor: Colors.white,
+//                         shape: RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.circular(20),
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//                 const SizedBox(height: 10),
+
+//                 Container(
+//                   height: 300,
+//                   decoration: BoxDecoration(
+//                     border: Border.all(color: Colors.grey.shade300),
+//                     borderRadius: BorderRadius.circular(12),
+//                   ),
+//                   child: TextField(
+//                     controller: _storyController,
+//                     maxLines: null,
+//                     expands: true,
+//                     textAlignVertical: TextAlignVertical.top,
+//                     decoration: InputDecoration(
+//                       hintText: _getPlaceholderText(),
+//                       border: OutlineInputBorder(
+//                         borderRadius: BorderRadius.circular(12),
+//                         borderSide: BorderSide.none,
+//                       ),
+//                       filled: true,
+//                       fillColor: Colors.grey.shade50,
+//                       contentPadding: const EdgeInsets.all(16),
+//                     ),
+//                   ),
+//                 ),
+
+//                 const SizedBox(height: 20),
+
+//                 // ===== Submit Button =====
+//                 SizedBox(
+//                   width: double.infinity,
+//                   height: 55,
+//                   child: ElevatedButton.icon(
+//                     onPressed: () async {
+//                       final storyText = _storyController.text.trim();
+//                       if (storyText.isEmpty) {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(
+//                             content: Text('Please write a story first!'),
+//                             backgroundColor: Colors.orange,
+//                           ),
+//                         );
+//                         return;
+//                       }
+
+//                       showDialog(
+//                         context: context,
+//                         barrierDismissible: false,
+//                         builder: (_) => Center(
+//                           child: Container(
+//                             padding: const EdgeInsets.all(24),
+//                             decoration: BoxDecoration(
+//                               color: Colors.white,
+//                               borderRadius: BorderRadius.circular(16),
+//                             ),
+//                             child: Column(
+//                               mainAxisSize: MainAxisSize.min,
+//                               children: [
+//                                 const CircularProgressIndicator(),
+//                                 const SizedBox(height: 20),
+//                                 const Text(
+//                                   'Generating Video',
+//                                   style: TextStyle(
+//                                     fontSize: 18,
+//                                     fontWeight: FontWeight.bold,
+//                                   ),
+//                                 ),
+//                                 const SizedBox(height: 8),
+//                                 Text(
+//                                   'Input: ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}',
+//                                   style: TextStyle(
+//                                       fontSize: 14, color: Colors.grey.shade700),
+//                                 ),
+//                                 Text(
+//                                   'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+//                                   style: TextStyle(
+//                                       fontSize: 14, color: Colors.grey.shade700),
+//                                 ),
+//                                 const SizedBox(height: 8),
+//                                 Text(
+//                                   'This may take 3-5 minutes...',
+//                                   style: TextStyle(
+//                                       fontSize: 12, color: Colors.grey.shade500),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ),
+//                       );
+
+//                       final videoResults = await _generateVideoFromBackend(
+//                         storyText,
+//                         _selectedInputLanguage,
+//                         _selectedOutputLanguage,
+//                       );
+
+//                       Navigator.pop(context);
+
+//                       if (videoResults == null || videoResults['video_url'] == null) {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(
+//                             content: Text("Failed to generate video"),
+//                             backgroundColor: Colors.red,
+//                           ),
+//                         );
+//                         return;
+//                       }
+
+//                       final videoUrl = videoResults['video_url'];
+//                       final coverUrl = videoResults['cover_url'];
+//                       final title = videoResults['title'] ?? 'Untitled';
+//                       final genre = videoResults['genre'] ?? 'General';
+
+//                       final res = await _submitStory(videoUrl, coverUrl, title, genre);
+
+//                       if (res['success'] == true) {
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) =>
+//                                 StoryDisplayPage(videoUrl: videoUrl!),
+//                           ),
+//                         );
+//                       } else {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           SnackBar(
+//                             content: Text(
+//                                 res['message'] ?? 'Failed to create story'),
+//                             backgroundColor: Colors.red,
+//                           ),
+//                         );
+//                       }
+//                     },
+//                     style: ElevatedButton.styleFrom(
+//                       backgroundColor: Colors.blue,
+//                       foregroundColor: Colors.white,
+//                       shape: RoundedRectangleBorder(
+//                         borderRadius: BorderRadius.circular(12),
+//                       ),
+//                       elevation: 3,
+//                     ),
+//                     icon: const Icon(Icons.send, size: 24),
+//                     label: const Text(
+//                       'Generate & Submit Story',
+//                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                     ),
+//                   ),
+//                 ),
+
+//                 const SizedBox(height: 20),
+//               ],
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'story_display_page.dart';
-import 'character_selection_page.dart';
 import 'navbar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/story_serviceFront.dart';
 import '../screens/ai_chatbot_modal.dart';
+
 class WriteStoryPage extends StatefulWidget {
   final List<Map<String, String>> selectedCharacters;
   const WriteStoryPage({
@@ -21,34 +2004,31 @@ class WriteStoryPage extends StatefulWidget {
 
 class _WriteStoryPageState extends State<WriteStoryPage> {
   void _openChatbot() {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) {
-      return AIChatbotModal(
-        onInsertStory: (story) {
-          setState(() {
-            _storyController.text = story;
-          });
-        },
-      );
-    },
-  );
-}
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return AIChatbotModal(
+          onInsertStory: (story) {
+            setState(() {
+              _storyController.text = story;
+            });
+          },
+        );
+      },
+    );
+  }
+
   final TextEditingController _storyController = TextEditingController();
   final List<Uint8List> _uploadedImageBytes = [];
-  
-  // ✅ Changed: Use dropdown value instead of TextEditingController
-  // String _selectedLanguage = 'english';  // Default language
-  String _selectedInputLanguage = 'english';   // Language you write in
-  String _selectedOutputLanguage = 'english';  // Language for video narration
- 
-  
+
+  String _selectedInputLanguage = 'english';
+  String _selectedOutputLanguage = 'english';
+
   bool _isPublic = true;
   List<Map<String, String>> _selectedCharacters = [];
 
-  // ✅ Language options matching backend
   final List<Map<String, String>> _languageOptions = [
     {'code': 'english', 'name': 'English', 'native': 'English'},
     {'code': 'hindi', 'name': 'Hindi', 'native': 'हिन्दी'},
@@ -89,7 +2069,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
-    Future<Map<String, String?>?> _generateVideoFromBackend(
+  Future<Map<String, String?>?> _generateVideoFromBackend(
     String storyText,
     String inputLang,
     String outputLang,
@@ -99,26 +2079,26 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
       print('Sending request to: $uri');
       print('Input Language: $inputLang');
       print('Output Language: $outputLang');
-      
+
       final response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'story': storyText,
-          'input_language': inputLang,    // ⭐ Language story is written in
-          'output_language': outputLang,  // ⭐ Language for video narration
+          'input_language': inputLang,
+          'output_language': outputLang,
         }),
       );
 
       print('Response status: ${response.statusCode}');
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print('Video URL: ${data['video_path']}');
         print('Cover URL: ${data['cover_image']}');
         print('Title: ${data['title']}');
         print('Genre: ${data['genre']}');
-        
+
         return {
           'video_url': data['video_path'] ?? data['video_url'],
           'cover_url': data['cover_image'] ?? data['cover_url'],
@@ -135,29 +2115,27 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
-
-  Future<Map<String, dynamic>> _submitStory(String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre) async {
+  Future<Map<String, dynamic>> _submitStory(
+      String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre) async {
     final storyText = _storyController.text.trim();
 
     if (storyText.isEmpty) {
       return {'success': false, 'message': 'Please write your story before submitting'};
     }
 
-    // final title = storyText.isNotEmpty
-    //     ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText)
-    //     : 'Untitled';
-    // final genre = "General";
     final String titleToSend = (storyTitle != null && storyTitle.trim().isNotEmpty)
         ? storyTitle.trim()
-        : (storyText.isNotEmpty ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText) : 'Untitled');
+        : (storyText.isNotEmpty
+            ? (storyText.length > 30 ? storyText.substring(0, 30) : storyText)
+            : 'Untitled');
 
-    final String genreToSend = (storyGenre != null && storyGenre.trim().isNotEmpty) ? storyGenre.trim() : 'General';
-
+    final String genreToSend =
+        (storyGenre != null && storyGenre.trim().isNotEmpty) ? storyGenre.trim() : 'General';
 
     final res = await StoryService.createStory(
       title: titleToSend,
       description: storyText,
-      language: _selectedOutputLanguage,  // ✅ Use selected language
+      language: _selectedOutputLanguage,
       displayFlag: _isPublic,
       genre: genreToSend,
       videoUrl: videoUrl,
@@ -167,7 +2145,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     return res;
   }
 
-   String _getPlaceholderText() {
+  String _getPlaceholderText() {
     final placeholders = {
       'english': 'Once upon a time...',
       'hindi': 'एक समय की बात है...',
@@ -189,339 +2167,222 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: Navbar(currentPage: 'home'),
-      body: SingleChildScrollView(  // ⭐ Added ScrollView
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ===== Selected Characters Preview =====
-              if (_selectedCharacters.isNotEmpty) ...[
-                const Text(
-                  'Selected Characters',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 90,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _selectedCharacters.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (context, index) {
-                      final character = _selectedCharacters[index];
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.asset(
-                                  character['image']!,
-                                  width: 56,
-                                  height: 56,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedCharacters.removeAt(index);
-                                    });
-                                  },
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
+          // ── Fixed background image covering full screen ─────────────
+          Positioned.fill(
+            child: Image.asset(
+              'images/create_story_bg.png',
+              fit: BoxFit.fill,
+            ),
+          ),
+
+          // ── Scrollable content on top ───────────────────────────────
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  const SizedBox(height: 320),
+
+                  // ===== Language + Visibility — Three fields in one row =====
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // ── Story Input Language ──────────────────
+                      SizedBox(
+                        width: 200,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.edit, size: 14, color: Colors.blue.shade700),
+                                const SizedBox(width: 4),
+                                const Flexible(
+                                  child: Text(
+                                    'Input Language',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
                                     ),
-                                    child: const Icon(Icons.close,
-                                        size: 14, color: Colors.white),
                                   ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.blue.shade200),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            character['name']!,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // ===== Add Characters Section =====
-              const Text(
-                'Add Characters',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-
-              // Row(
-              //   children: [
-              //     Expanded(
-              //       child: GestureDetector(
-              //         onTap: _goToLibrary,
-              //         child: Container(
-              //           height: 80,
-              //           decoration: BoxDecoration(
-              //             color: Colors.blue.shade50,
-              //             borderRadius: BorderRadius.circular(12),
-              //             border: Border.all(color: Colors.blue.shade200),
-              //           ),
-              //           child: Column(
-              //             mainAxisAlignment: MainAxisAlignment.center,
-              //             children: [
-              //               Icon(Icons.photo_library,
-              //                   color: Colors.blue.shade600, size: 28),
-              //               const SizedBox(height: 6),
-              //               Text(
-              //                 'Select from Library',
-              //                 style: TextStyle(
-              //                   fontSize: 12,
-              //                   fontWeight: FontWeight.w600,
-              //                   color: Colors.blue.shade700,
-              //                 ),
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //       ),
-              //     ),
-              //     const SizedBox(width: 12),
-
-              //     Expanded(
-              //       child: GestureDetector(
-              //         onTap: _pickImagesFromDevice,
-              //         child: Container(
-              //           height: 80,
-              //           decoration: BoxDecoration(
-              //             color: Colors.green.shade50,
-              //             borderRadius: BorderRadius.circular(12),
-              //             border: Border.all(color: Colors.green.shade200),
-              //           ),
-              //           child: Column(
-              //             mainAxisAlignment: MainAxisAlignment.center,
-              //             children: [
-              //               Icon(Icons.upload_file,
-              //                   color: Colors.green.shade600, size: 28),
-              //               const SizedBox(height: 6),
-              //               Text(
-              //                 'Upload Images',
-              //                 style: TextStyle(
-              //                   fontSize: 12,
-              //                   fontWeight: FontWeight.w600,
-              //                   color: Colors.green.shade700,
-              //                 ),
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //       ),
-              //     ),
-              //   ],
-              // ),
-
-              // ===== Uploaded Images Preview =====
-              // if (_uploadedImageBytes.isNotEmpty) ...[
-              //   const SizedBox(height: 12),
-              //   SizedBox(
-              //     height: 90,
-              //     child: ListView.separated(
-              //       scrollDirection: Axis.horizontal,
-              //       itemCount: _uploadedImageBytes.length,
-              //       separatorBuilder: (_, __) => const SizedBox(width: 10),
-              //       itemBuilder: (context, index) {
-              //         return Stack(
-              //           children: [
-              //             ClipRRect(
-              //               borderRadius: BorderRadius.circular(10),
-              //               child: Image.memory(
-              //                 _uploadedImageBytes[index],
-              //                 width: 70,
-              //                 height: 70,
-              //                 fit: BoxFit.cover,
-              //               ),
-              //             ),
-              //             Positioned(
-              //               top: 2,
-              //               right: 2,
-              //               child: GestureDetector(
-              //                 onTap: () {
-              //                   setState(() {
-              //                     _uploadedImageBytes.removeAt(index);
-              //                   });
-              //                 },
-              //                 child: Container(
-              //                   decoration: const BoxDecoration(
-              //                     color: Colors.black54,
-              //                     shape: BoxShape.circle,
-              //                   ),
-              //                   child: const Icon(Icons.close,
-              //                       size: 16, color: Colors.white),
-              //                 ),
-              //               ),
-              //             ),
-              //           ],
-              //         );
-              //       },
-              //     ),
-              //   ),
-              // ],
-
-              const SizedBox(height: 20),
-
-              // ⭐ NEW: Language Selection Card
-              Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.language, color: Colors.blue.shade700, size: 24),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Language Settings',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // ⭐ Input Language Dropdown
-                      const Text(
-                        'Story Input Language',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.blue.shade200),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedInputLanguage,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.blue),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
-                            ),
-                            items: _languageOptions.map((lang) {
-                              return DropdownMenuItem<String>(
-                                value: lang['code'],
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.edit, size: 18, color: Colors.blue),
-                                    const SizedBox(width: 10),
-                                    Text('${lang['name']} (${lang['native']})'),
-                                  ],
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedInputLanguage,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.keyboard_arrow_down,
+                                      color: Colors.blue, size: 18),
+                                  style: const TextStyle(
+                                      fontSize: 13, color: Colors.black87),
+                                  items: _languageOptions.map((lang) {
+                                    return DropdownMenuItem<String>(
+                                      value: lang['code'],
+                                      child: Text(lang['name']!),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      _selectedInputLanguage =
+                                          newValue ?? 'english';
+                                    });
+                                  },
                                 ),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                _selectedInputLanguage = newValue ?? 'english';
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-
-                      // ⭐ Output Language Dropdown
-                      const Text(
-                        'Video Audio Language',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedOutputLanguage,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.green),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
+                              ),
                             ),
-                            items: _languageOptions.map((lang) {
-                              return DropdownMenuItem<String>(
-                                value: lang['code'],
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.volume_up, size: 18, color: Colors.green),
-                                    const SizedBox(width: 10),
-                                    Text('${lang['name']} (${lang['native']})'),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                _selectedOutputLanguage = newValue ?? 'english';
-                              });
-                            },
-                          ),
+                          ],
                         ),
                       ),
 
-                      // ⭐ Info Box
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.amber.shade200),
-                        ),
-                        child: Row(
+                      const SizedBox(width: 10),
+
+                      // ── Video Audio Language ──────────────────
+                      SizedBox(
+                        width: 200,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline, color: Colors.amber.shade800, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Write in ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}, '
-                                'hear in ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.amber.shade900,
+                            Row(
+                              children: [
+                                Icon(Icons.volume_up,
+                                    size: 14, color: Colors.green.shade700),
+                                const SizedBox(width: 4),
+                                const Flexible(
+                                  child: Text(
+                                    'Audio Language',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.green.shade200),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedOutputLanguage,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.keyboard_arrow_down,
+                                      color: Colors.green, size: 18),
+                                  style: const TextStyle(
+                                      fontSize: 13, color: Colors.black87),
+                                  items: _languageOptions.map((lang) {
+                                    return DropdownMenuItem<String>(
+                                      value: lang['code'],
+                                      child: Text(lang['name']!),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      _selectedOutputLanguage =
+                                          newValue ?? 'english';
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      // ── Make Story Public toggle ──────────────
+                      SizedBox(
+                        width: 200,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _isPublic ? Icons.public : Icons.lock,
+                                  size: 14,
+                                  color: _isPublic
+                                      ? Colors.blue.shade700
+                                      : Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 4),
+                                const Flexible(
+                                  child: Text(
+                                    'Visibility',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              height: 44, // matches dropdown height
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: _isPublic
+                                    ? Colors.blue.shade50
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: _isPublic
+                                      ? Colors.blue.shade200
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _isPublic ? 'Public' : 'Private',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: _isPublic
+                                            ? Colors.blue.shade800
+                                            : Colors.grey.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: _isPublic,
+                                    activeColor: Colors.blue,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _isPublic = val;
+                                      });
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -529,208 +2390,401 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                       ),
                     ],
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 20),
+                  // // ── Info hint below the row ───────────────────────────────
+                  // const SizedBox(height: 10),
+                  // Container(
+                  //   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.amber.shade50,
+                  //     borderRadius: BorderRadius.circular(8),
+                  //     border: Border.all(color: Colors.amber.shade200),
+                  //   ),
+                  //   child: Row(
+                  //     children: [
+                  //       Icon(Icons.info_outline,
+                  //           color: Colors.amber.shade800, size: 18),
+                  //       const SizedBox(width: 8),
+                  //       SizedBox(
+                  //         width: 300,
+                  //         child: Text(
+                  //           'Write in ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}, '
+                  //           'hear in ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+                  //           style: TextStyle(
+                  //             fontSize: 12,
+                  //             color: Colors.amber.shade900,
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
 
-              // ===== Public/Private Toggle =====
-              SwitchListTile(
-                title: const Text('Make Story Public'),
-                subtitle: const Text('Others can see this story'),
-                value: _isPublic,
-                activeColor: Colors.blue,
-                onChanged: (val) {
-                  setState(() {
-                    _isPublic = val;
-                  });
-                },
-              ),
+                  // const SizedBox(height: 15),
 
-              const SizedBox(height: 20),
+                  // ===== Story Text Box =====
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  //   children: [
+                  //     const Text(
+                  //       'Your Story',
+                  //       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  //     ),
+                  //     ElevatedButton.icon(
+                  //       onPressed: _openChatbot,
+                  //       icon: const Icon(Icons.auto_awesome),
+                  //       label: const Text("AI Story"),
+                  //       style: ElevatedButton.styleFrom(
+                  //         backgroundColor: Colors.deepPurple,
+                  //         foregroundColor: Colors.white,
+                  //         shape: RoundedRectangleBorder(
+                  //           borderRadius: BorderRadius.circular(20),
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
+                  // const SizedBox(height: 10),
 
-              // ===== Story Text Box =====
-              // const Text(
-              //   'Your Story',
-              //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              // ),
-                Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-
-                  const Text(
-                    'Your Story',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-
-                  ElevatedButton.icon(
-                    onPressed: _openChatbot,
-                    icon: const Icon(Icons.auto_awesome),
-                    label: const Text("AI Story"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-
-                ],
-              ),
-              const SizedBox(height: 10),
-
-              // ⭐ Changed: Fixed height instead of Expanded
-              Container(
-                height: 300,  // Fixed height
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _storyController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  decoration: InputDecoration(
-                    hintText: _getPlaceholderText(),  // ⭐ Dynamic placeholder
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-
-              // ===== Submit Button =====
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final storyText = _storyController.text.trim();
-                    if (storyText.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please write a story first!'),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Show loading dialog
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) => Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(),
-                              const SizedBox(height: 20),
-                              Text(
-                                'Generating Video',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Input: ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}',
-                                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                              ),
-                              Text(
-                                'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
-                                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'This may take 3-5 minutes...',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-
-                    // ⭐ Generate video with BOTH languages
-                    final videoResults = await _generateVideoFromBackend(
-                      storyText,
-                      _selectedInputLanguage,   // What language you wrote in
-                      _selectedOutputLanguage,  // What language for audio
-                    );
-
-                    Navigator.pop(context); // Remove loading dialog
-
-                    if (videoResults == null || videoResults['video_url'] == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Failed to generate video"),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    final videoUrl = videoResults['video_url'];
-                    final coverUrl = videoResults['cover_url'];
-                    final title = videoResults['title'] ?? 'Untitled';
-                    final genre = videoResults['genre'] ?? 'General';
-
-                    // Submit story to database
-                    final res = await _submitStory(videoUrl, coverUrl, title, genre);
-
-                    if (res['success'] == true) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StoryDisplayPage(videoUrl: videoUrl!),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(res['message'] ?? 'Failed to create story'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 3,
-                  ),
-                  icon: const Icon(Icons.send, size: 24),
-                  label: const Text(
-                    'Generate & Submit Story',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),  // Bottom padding
-            ],
-          ),
+                  // Container(
+                  //   height: 300,
+                  //   decoration: BoxDecoration(
+                  //     border: Border.all(color: Colors.grey.shade300),
+                  //     borderRadius: BorderRadius.circular(12),
+                  //   ),
+                  //   child: TextField(
+                  //     controller: _storyController,
+                  //     maxLines: null,
+                  //     expands: true,
+                  //     textAlignVertical: TextAlignVertical.top,
+                  //     decoration: InputDecoration(
+                  //       hintText: _getPlaceholderText(),
+                  //       border: OutlineInputBorder(
+                  //         borderRadius: BorderRadius.circular(12),
+                  //         borderSide: BorderSide.none,
+                  //       ),
+                  //       filled: false,
+                  //       fillColor: Colors.grey.shade50,
+                  //       contentPadding: const EdgeInsets.all(16),
+                  //     ),
+                  //   ),
+                  // ),
+                  Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    const Text(
+      'Your Story',
+      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+    // ElevatedButton.icon(
+    //   onPressed: _openChatbot,
+    //   icon: const Icon(Icons.auto_awesome),
+    //   label: const Text("AI Story"),
+    //   style: ElevatedButton.styleFrom(
+    //     backgroundColor: Colors.deepPurple,
+    //     foregroundColor: Colors.white,
+    //     shape: RoundedRectangleBorder(
+    //       borderRadius: BorderRadius.circular(20),
+    //     ),
+    //   ),
+    // ),
+    Align(
+  alignment: Alignment.centerRight,
+  child: Padding(
+    padding: const EdgeInsets.only(right: 400,bottom: 10), // margin from right
+    child: ElevatedButton.icon(
+      onPressed: _openChatbot,
+      icon: const Icon(Icons.auto_awesome),
+      label: const Text("AI Story"),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
+    ),
+  ),
+)
+  ],
+),
+
+Center(
+  child: SizedBox(
+    width: 1250, // change this value to control width
+    child: Container(
+      height: 250,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: _storyController,
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        decoration: InputDecoration(
+          hintText: _getPlaceholderText(),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: false,
+          fillColor: Colors.grey.shade50,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+      ),
+    ),
+  ),
+),
+
+                  const SizedBox(height: 20),
+
+                  // ===== Submit Button =====
+                  // SizedBox(
+                  //   width: 300,
+                  //   height: 55,
+                  //   child: ElevatedButton.icon(
+                  //     onPressed: () async {
+                  //       final storyText = _storyController.text.trim();
+                  //       if (storyText.isEmpty) {
+                  //         ScaffoldMessenger.of(context).showSnackBar(
+                  //           const SnackBar(
+                  //             content: Text('Please write a story first!'),
+                  //             backgroundColor: Colors.orange,
+                  //           ),
+                  //         );
+                  //         return;
+                  //       }
+
+                  //       showDialog(
+                  //         context: context,
+                  //         barrierDismissible: false,
+                  //         builder: (_) => Center(
+                  //           child: Container(
+                  //             padding: const EdgeInsets.all(24),
+                  //             decoration: BoxDecoration(
+                  //               color: Colors.white,
+                  //               borderRadius: BorderRadius.circular(16),
+                  //             ),
+                  //             child: Column(
+                  //               mainAxisSize: MainAxisSize.min,
+                  //               children: [
+                  //                 const CircularProgressIndicator(),
+                  //                 const SizedBox(height: 20),
+                  //                 const Text(
+                  //                   'Generating Video',
+                  //                   style: TextStyle(
+                  //                     fontSize: 18,
+                  //                     fontWeight: FontWeight.bold,
+                  //                   ),
+                  //                 ),
+                  //                 const SizedBox(height: 8),
+                  //                 Text(
+                  //                   'Input: ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}',
+                  //                   style: TextStyle(
+                  //                       fontSize: 14, color: Colors.grey.shade700),
+                  //                 ),
+                  //                 Text(
+                  //                   'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+                  //                   style: TextStyle(
+                  //                       fontSize: 14, color: Colors.grey.shade700),
+                  //                 ),
+                  //                 const SizedBox(height: 8),
+                  //                 Text(
+                  //                   'This may take 3-5 minutes...',
+                  //                   style: TextStyle(
+                  //                       fontSize: 12, color: Colors.grey.shade500),
+                  //                 ),
+                  //               ],
+                  //             ),
+                  //           ),
+                  //         ),
+                  //       );
+
+                  //       final videoResults = await _generateVideoFromBackend(
+                  //         storyText,
+                  //         _selectedInputLanguage,
+                  //         _selectedOutputLanguage,
+                  //       );
+
+                  //       Navigator.pop(context);
+
+                  //       if (videoResults == null || videoResults['video_url'] == null) {
+                  //         ScaffoldMessenger.of(context).showSnackBar(
+                  //           const SnackBar(
+                  //             content: Text("Failed to generate video"),
+                  //             backgroundColor: Colors.red,
+                  //           ),
+                  //         );
+                  //         return;
+                  //       }
+
+                  //       final videoUrl = videoResults['video_url'];
+                  //       final coverUrl = videoResults['cover_url'];
+                  //       final title = videoResults['title'] ?? 'Untitled';
+                  //       final genre = videoResults['genre'] ?? 'General';
+
+                  //       final res =
+                  //           await _submitStory(videoUrl, coverUrl, title, genre);
+
+                  //       if (res['success'] == true) {
+                  //         Navigator.push(
+                  //           context,
+                  //           MaterialPageRoute(
+                  //             builder: (context) =>
+                  //                 StoryDisplayPage(videoUrl: videoUrl!),
+                  //           ),
+                  //         );
+                  //       } else {
+                  //         ScaffoldMessenger.of(context).showSnackBar(
+                  //           SnackBar(
+                  //             content: Text(
+                  //                 res['message'] ?? 'Failed to create story'),
+                  //             backgroundColor: Colors.red,
+                  //           ),
+                  //         );
+                  //       }
+                  //     },
+                  //     style: ElevatedButton.styleFrom(
+                  //       backgroundColor: Colors.blue,
+                  //       foregroundColor: Colors.white,
+                  //       shape: RoundedRectangleBorder(
+                  //         borderRadius: BorderRadius.circular(12),
+                  //       ),
+                  //       elevation: 3,
+                  //     ),
+                  //     icon: const Icon(Icons.send, size: 24),
+                  //     label: const Text(
+                  //       'Generate & Submit Story',
+                  //       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  //     ),
+                  //   ),
+                  // ),
+Center(
+  child: SizedBox(
+    width: 300,
+    height: 55,
+    child: ElevatedButton.icon(
+      onPressed: () async {
+        final storyText = _storyController.text.trim();
+        if (storyText.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please write a story first!'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Generating Video',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Input: ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  ),
+                  Text(
+                    'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This may take 3-5 minutes...',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final videoResults = await _generateVideoFromBackend(
+          storyText,
+          _selectedInputLanguage,
+          _selectedOutputLanguage,
+        );
+
+        Navigator.pop(context);
+
+        if (videoResults == null || videoResults['video_url'] == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Failed to generate video"),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        final videoUrl = videoResults['video_url'];
+        final coverUrl = videoResults['cover_url'];
+        final title = videoResults['title'] ?? 'Untitled';
+        final genre = videoResults['genre'] ?? 'General';
+
+        final res = await _submitStory(videoUrl, coverUrl, title, genre);
+
+        if (res['success'] == true) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StoryDisplayPage(videoUrl: videoUrl!),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(res['message'] ?? 'Failed to create story'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 3,
+      ),
+      icon: const Icon(Icons.send, size: 24),
+      label: const Text(
+        'Generate & Submit Story',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+    ),
+  ),
+),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
     );
   }
 }
