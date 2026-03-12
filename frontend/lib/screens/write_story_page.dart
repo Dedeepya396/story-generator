@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'story_display_page.dart';
-import 'character_selection_page.dart';
 import 'navbar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -43,6 +42,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
   // String _selectedLanguage = 'english';  // Default language
   String _selectedInputLanguage = 'english';   // Language you write in
   String _selectedOutputLanguage = 'english';  // Language for video narration
+  String _selectedGender = 'female';           // Narrator voice gender
  
   
   bool _isPublic = true;
@@ -89,7 +89,66 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     }
   }
 
-    Future<Map<String, String?>?> _generateVideoFromBackend(
+  // Future<void> _goToLibrary() async {
+  //   final result = await Navigator.push<List<Map<String, String>>>(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (_) => const CharacterSelectionPage(
+  //         isFromWritePage: true,
+  //       ),
+  //     ),
+  //   );
+  // 
+  //   if (result != null && result.isNotEmpty) {
+  //     setState(() {
+  //       for (final newChar in result) {
+  //         final alreadyAdded =
+  //             _selectedCharacters.any((c) => c['name'] == newChar['name']);
+  //         if (!alreadyAdded) {
+  //           _selectedCharacters.add(newChar);
+  //         }
+  //       }
+  //     });
+  //   }
+  // }
+
+  // Future<Map<String, String?>?> _generateVideoFromBackend(String storyText, String lang) async {
+  //   try {
+  //     final uri = Uri.parse('http://127.0.0.1:8000/video/generate');
+  //     print('Sending request to: $uri');
+  //     print('Language: $lang');
+      
+  //     final response = await http.post(
+  //       uri,
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({'story': storyText, 'language': lang}),
+  //     );
+
+  //     print('Response status: ${response.statusCode}');
+      
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       print('Video URL: ${data['video_url']}');
+  //       print('Cover URL: ${data['cover_url']}');
+  //       print('Title: ${data['title']}');
+  //       print('Genre: ${data['genre']}');
+  //       return {
+  //         'video_url': data['video_url'],
+  //         'cover_url': data['cover_url'],
+  //         'title': data['title'] ?? 'Untitled',
+  //         'genre': data['genre'] ?? 'General',
+  //       };
+  //     } else {
+  //       print('Error response: ${response.body}');
+  //       return null;
+  //     }
+  //   } catch (e) {
+  //     print('Exception in _generateVideoFromBackend: $e');
+  //     return null;
+  //   }
+  // }
+
+  Future<Map<String, dynamic>?> _generateVideoFromBackend(
     String storyText,
     String inputLang,
     String outputLang,
@@ -97,33 +156,26 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
     try {
       final uri = Uri.parse('http://127.0.0.1:8000/videos/generate');
       print('Sending request to: $uri');
-      print('Input Language: $inputLang');
-      print('Output Language: $outputLang');
       
       final response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'story': storyText,
-          'input_language': inputLang,    // ⭐ Language story is written in
-          'output_language': outputLang,  // ⭐ Language for video narration
+          'input_language': inputLang,
+          'output_language': outputLang,
+          'gender': _selectedGender,
         }),
       );
 
-      print('Response status: ${response.statusCode}');
-      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Video URL: ${data['video_path']}');
-        print('Cover URL: ${data['cover_image']}');
-        print('Title: ${data['title']}');
-        print('Genre: ${data['genre']}');
-        
         return {
           'video_url': data['video_path'] ?? data['video_url'],
           'cover_url': data['cover_image'] ?? data['cover_url'],
           'title': data['title'] ?? 'Untitled',
           'genre': data['genre'] ?? 'General',
+          'voice_fallback': data['voice_fallback'] ?? false,
         };
       } else {
         print('Error response: ${response.body}');
@@ -501,6 +553,48 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                         ),
                       ),
 
+                      const SizedBox(height: 16),
+                      
+                      // ⭐ Narrator Gender Selection
+                      const Text(
+                        'Narrator Voice',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Center(child: Text('Female Voice')),
+                              selected: _selectedGender == 'female',
+                              onSelected: (selected) {
+                                if (selected) setState(() => _selectedGender = 'female');
+                              },
+                              selectedColor: Colors.pink.shade100,
+                              avatar: Icon(Icons.face_retouching_natural, 
+                                color: _selectedGender == 'female' ? Colors.pink : Colors.grey),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Center(child: Text('Male Voice')),
+                              selected: _selectedGender == 'male',
+                              onSelected: (selected) {
+                                if (selected) setState(() => _selectedGender = 'male');
+                              },
+                              selectedColor: Colors.blue.shade100,
+                              avatar: Icon(Icons.face, 
+                                color: _selectedGender == 'male' ? Colors.blue : Colors.grey),
+                            ),
+                          ),
+                        ],
+                      ),
+
                       // ⭐ Info Box
                       const SizedBox(height: 12),
                       Container(
@@ -517,7 +611,8 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                             Expanded(
                               child: Text(
                                 'Write in ${_languageOptions.firstWhere((l) => l['code'] == _selectedInputLanguage)['name']}, '
-                                'hear in ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+                                'hear in ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']} '
+                                '(${_selectedGender == 'female' ? 'Female' : 'Male'} voice)',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.amber.shade900,
@@ -653,7 +748,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                                 style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                               ),
                               Text(
-                                'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']}',
+                                'Audio: ${_languageOptions.firstWhere((l) => l['code'] == _selectedOutputLanguage)['name']} (${_selectedGender.toUpperCase()})',
                                 style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                               ),
                               const SizedBox(height: 8),
@@ -690,6 +785,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                     final coverUrl = videoResults['cover_url'];
                     final title = videoResults['title'] ?? 'Untitled';
                     final genre = videoResults['genre'] ?? 'General';
+                    final voiceFallback = videoResults['voice_fallback'] ?? false;
 
                     // Submit story to database
                     final res = await _submitStory(videoUrl, coverUrl, title, genre);
@@ -698,7 +794,10 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => StoryDisplayPage(videoUrl: videoUrl!),
+                          builder: (context) => StoryDisplayPage(
+                            videoUrl: videoUrl,
+                            voiceFallback: voiceFallback,
+                          ),
                         ),
                       );
                     } else {

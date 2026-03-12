@@ -8,10 +8,12 @@ import 'navbar.dart';
 
 class StoryDisplayPage extends StatefulWidget {
   final String videoUrl;
+  final bool voiceFallback;
 
   const StoryDisplayPage({
     super.key,
     required this.videoUrl,
+    this.voiceFallback = false,
   });
   @override
   State<StoryDisplayPage> createState() => _StoryDisplayPageState();
@@ -43,6 +45,34 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
         });
 
         _controller!.play();
+
+        // ⭐ Show popup message if voice fallback occurred
+        if (widget.voiceFallback) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                    const SizedBox(width: 10),
+                    const Flexible(
+                      child: Text(
+                        'Required voice is not available so generated the inbuilt voice',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.amber.shade800,
+                duration: const Duration(seconds: 4),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          });
+        }
       }).catchError((e) {
         setState(() {
           _error = "Error loading video";

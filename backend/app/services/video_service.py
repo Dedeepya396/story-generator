@@ -159,8 +159,9 @@ def generate_story_video(
     story: str, 
     output_path: str, 
     language: str = "english",          # Output language for audio
-    input_language: str = "english"     # ADD THIS PARAMETER
-) -> Tuple[str, Optional[str], Optional[str]]:  # CHANGE RETURN TYPE
+    input_language: str = "english",    # ADD THIS PARAMETER
+    gender: str = "female"              # New gender parameter
+) -> Tuple[str, Optional[str], Optional[str], bool]:  # Added bool for voice_fallback
     """
     Main entry used by the FastAPI route.
     Generates a video file at `output_path` from the given story text.
@@ -206,6 +207,7 @@ def generate_story_video(
 
     clips = []
     temp_files: List[str] = []
+    any_voice_fallback = False
 
     try:
         for i, scene in enumerate(scenes):
@@ -220,11 +222,15 @@ def generate_story_video(
             if language.lower() != "english":
                 # Use AI4Bharat pipeline (Translation + VITS TTS)
                 print(f"Scene {i}: Translating to {language}...")
-                translated_text, indic_audio_path = generate_multilingual_audio(
+                translated_text, indic_audio_path, voice_fallback = generate_multilingual_audio(
                     english_text=scene["text"],
                     target_language=language,
-                    output_path=audio_path
+                    output_path=audio_path,
+                    gender=gender
                 )
+                if voice_fallback:
+                    any_voice_fallback = True
+                
                 print(f"  Original: {scene['text']}")
                 print(f"  Translated: {translated_text}")
                 temp_files.append(indic_audio_path)
@@ -293,7 +299,6 @@ def generate_story_video(
             codec="libx264",
             audio_codec="aac",
         )
-        return cover_image_path, title, genre
     finally:
         # Close clips & audio to release file handles
         for clip in clips:
@@ -311,3 +316,5 @@ def generate_story_video(
                     os.remove(path)
             except Exception:
                 pass
+    
+    return cover_image_path, title, genre, any_voice_fallback

@@ -19,11 +19,12 @@ async def generate_video_endpoint(request: StoryRequest):
 
     # Generate video (now returns cover image path)
     try:
-        cover_image_path, title, genre = generate_story_video(
+        cover_image_path, title, genre, voice_fallback = generate_story_video(
             request.story, 
             output_path,
             language=request.output_language,
-            input_language=request.input_language
+            input_language=request.input_language,
+            gender=request.gender
         )
     except Exception as e:
         print(f"Video generation failed: {e}")
@@ -53,7 +54,8 @@ async def generate_video_endpoint(request: StoryRequest):
             "title": title,
             "genre": genre,
             "input_language": request.input_language,
-            "output_language": request.output_language
+            "output_language": request.output_language,
+            "voice_fallback": voice_fallback
         }
     except Exception as e:
         print(f"Cloudinary upload failed: {e}")

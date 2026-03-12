@@ -415,7 +415,7 @@ def call_translation_worker(text: str, target_language: str) -> str:
         
         output = json.loads(result.stdout)
         translated = output["translated_text"]
-        print(f"   ✅ Translation completed")
+        print(f"Translation completed")
         return translated
         # return output["translated_text"]
     
@@ -432,8 +432,9 @@ def call_tts_worker(
     text: str,
     language: str,
     output_path: str,
-    speaker_id: Optional[int] = None
-) -> str:
+    speaker_id: Optional[int] = None,
+    gender: str = "female"
+) -> Tuple[str, bool]:
     """
     Call TTS worker in separate environment.
     
@@ -442,15 +443,17 @@ def call_tts_worker(
         language: Language of the text
         output_path: Where to save audio file
         speaker_id: Optional speaker ID
+        gender: Selected gender ('male'/'female')
     
     Returns:
-        Path to generated audio file
+        Tuple of (audio_path, voice_fallback)
     """
     input_data = json.dumps({
         "text": text,
         "language": language,
         "output_path": output_path,
-        "speaker_id": speaker_id
+        "speaker_id": speaker_id,
+        "gender": gender
     })
     print(f"   → Calling TTS worker ({language} audio generation)...")
 
@@ -466,9 +469,9 @@ def call_tts_worker(
         
         output = json.loads(result.stdout)
         audio_path = output["audio_path"]
-        print(f"TTS generation completed")
-        return audio_path
-        # return output["audio_path"]
+        voice_fallback = output.get("voice_fallback", False)
+        print(f"TTS generation completed (fallback: {voice_fallback})")
+        return audio_path, voice_fallback
     
     except subprocess.CalledProcessError as e:
         print(f"TTS worker error: {e.stderr}")
@@ -522,8 +525,9 @@ def generate_multilingual_audio(
     target_language: str,
     output_path: str,
     speaker_id: Optional[int] = None,
-    emotion_id: int = 0
-) -> Tuple[str, Optional[str]]:
+    emotion_id: int = 0,
+    gender: str = "female"
+) -> Tuple[str, Optional[str], bool]:
     """
     Complete pipeline: Translate English text and generate audio.
     
@@ -533,9 +537,10 @@ def generate_multilingual_audio(
         output_path: Path to save audio file
         speaker_id: Optional speaker ID
         emotion_id: Unused (for compatibility)
+        gender: 'male' or 'female'
     
     Returns:
-        Tuple of (translated_text, audio_file_path or None)
+        Tuple of (translated_text, audio_file_path or None, voice_fallback)
     """
     
     if target_language.lower() != "english":
@@ -559,18 +564,19 @@ def generate_multilingual_audio(
         print(f"Step 2: Generating {target_language.title()} audio using AI4Bharat VITS TTS...")
         wav_path = output_path.replace('.mp3', '.wav')
         
-        audio_path = call_tts_worker(
+        audio_path, voice_fallback = call_tts_worker(
             text=translated_text,
             language=target_language,
             output_path=wav_path,
-            speaker_id=speaker_id
+            speaker_id=speaker_id,
+            gender=gender
         )
         
         print(f"✅ Audio generated successfully!")
         print(f"   Audio saved to: {audio_path}")
         print(f"{'='*70}\n")
         
-        return translated_text, audio_path
+        return translated_text, audio_path, voice_fallback
     else:
         print(f"\n{'='*70}")
         print(f"ENGLISH AUDIO PIPELINE (NO TRANSLATION)")
@@ -580,4 +586,4 @@ def generate_multilingual_audio(
         print(f"Note: Using gTTS for English audio (handled in video_service)")
         print(f"{'='*70}\n")
         
-        return english_text, None
+        return english_text, None, False
