@@ -884,7 +884,8 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
           // Main scrollable content
           SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+              // padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 120, 16, 28),
               child: Center(
                 child: ConstrainedBox(
                   // ── Max-width container (card) ─────────────────────────────
