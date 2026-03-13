@@ -121,6 +121,7 @@ Widget build(BuildContext context) {
   final previewStories = _publicStories.take(4).toList();
 
   return Scaffold(
+    extendBodyBehindAppBar: true,
     appBar: Navbar(currentPage: 'home'),
     body: Container(
       width: double.infinity,

@@ -12,65 +12,64 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PreferredSize(
-      preferredSize: preferredSize,
-      child: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        // Crucial: Remove the default white background
-        automaticallyImplyLeading: false,
-        toolbarOpacity: 1.0,
-        // Control status bar style
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        // Transparent flexibleSpace
-        flexibleSpace: Container(
-          color: Colors.transparent,
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildNavButton(
-              context: context,
-              label: 'Home',
-              isActive: currentPage == 'home',
-              onPressed: () => Navigator.pushNamed(context, '/home'),
-            ),
-            const SizedBox(width: 40),
-            _buildNavButton(
-              context: context,
-              label: 'Create Story',
-              isActive: currentPage == 'story-input',
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/story-input'),
-            ),
-            const SizedBox(width: 40),
-            _buildNavButton(
-              context: context,
-              label: 'My Stories',
-              isActive: currentPage == 'my-stories',
-              onPressed: () => Navigator.pushNamed(context, '/my-stories'),
-            ),
-            const SizedBox(width: 40),
-            _buildNavButton(
-              context: context,
-              label: 'Profile',
-              isActive: currentPage == 'profile',
-              onPressed: () => Navigator.pushNamed(context, '/profile'),
-            ),
-            const SizedBox(width: 40),
-            _buildNavButton(
-              context: context,
-              label: 'Logout',
-              isActive: false,
-              onPressed: () {
-                AuthService.logout();
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-              },
-            ),
-          ],
-        ),
-        centerTitle: true,
-        toolbarHeight: 80,
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      automaticallyImplyLeading: false,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      centerTitle: true,
+      toolbarHeight: 80,
+
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildNavButton(
+            context: context,
+            label: 'Home',
+            isActive: currentPage == 'home',
+            onPressed: () => Navigator.pushNamed(context, '/home'),
+          ),
+
+          const SizedBox(width: 40),
+
+          _buildNavButton(
+            context: context,
+            label: 'Create Story',
+            isActive: currentPage == 'story-input',
+            onPressed: () => Navigator.pushNamed(context, '/story-input'),
+          ),
+
+          const SizedBox(width: 40),
+
+          _buildNavButton(
+            context: context,
+            label: 'My Stories',
+            isActive: currentPage == 'my-stories',
+            onPressed: () => Navigator.pushNamed(context, '/my-stories'),
+          ),
+
+          const SizedBox(width: 40),
+
+          _buildNavButton(
+            context: context,
+            label: 'Profile',
+            isActive: currentPage == 'profile',
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+          ),
+
+          const SizedBox(width: 40),
+
+          _buildNavButton(
+            context: context,
+            label: 'Logout',
+            isActive: false,
+            onPressed: () {
+              AuthService.logout();
+              Navigator.of(context)
+                  .pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -86,20 +85,14 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: Colors.white,
+          color: Colors.black,
           fontSize: 18,
           fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-          decoration: isActive ? TextDecoration.underline : TextDecoration.none,
+          decoration: isActive
+              ? TextDecoration.underline
+              : TextDecoration.none,
           decorationColor: Colors.amber,
           decorationThickness: 2,
-          // Add shadow for text readability over background
-          shadows: [
-            Shadow(
-              blurRadius: 6.0,
-              color: Colors.black.withOpacity(0.6),
-              offset: const Offset(2.0, 2.0),
-            ),
-          ],
         ),
       ),
     );

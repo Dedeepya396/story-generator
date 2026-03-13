@@ -842,6 +842,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: Navbar(currentPage: 'home'),
       // ── Outer scroll + grey page background ──────────────────────────────
       // backgroundColor: Colors.grey.shade100,

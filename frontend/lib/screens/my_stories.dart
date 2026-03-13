@@ -208,6 +208,7 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
     }).toList();
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: Navbar(currentPage: 'home'),
       body: Container(
         decoration: const BoxDecoration(

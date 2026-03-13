@@ -620,6 +620,7 @@ Widget _buildControls() {
     }
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'Your Story Video',
@@ -628,9 +629,10 @@ Widget _buildControls() {
             fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor: const Color(0xFFFFCFE2),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF49243E)),
+        systemOverlayStyle: null,
       ),
       backgroundColor: const Color(0xFFFFF7FB),
       body: Container(

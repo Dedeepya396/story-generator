@@ -75,6 +75,7 @@ class _AllStoriesPageState extends State<AllStoriesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(title: const Text("All Stories")),
       body: loading
           ? const Center(child: CircularProgressIndicator())
