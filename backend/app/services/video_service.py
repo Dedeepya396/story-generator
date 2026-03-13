@@ -12,6 +12,12 @@ from groq import Groq
 from huggingface_hub import InferenceClient
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 from mistralai import Mistral
+import random
+# Import AI4Bharat service
+from app.services.ai4bharat_service import generate_multilingual_audio
+from app.services.indic_translation_service import translate_to_english  
+from app.services.storyHelper_service import extract_characters, plan_scenes, generate_scene_image
+
 
 
 # Import AI4Bharat service
@@ -115,45 +121,6 @@ Story:
         return None, "Other"
 
 
-def _generate_scenes_from_story(story_text: str, num_scenes: int = 6) -> List[Dict]:
-    """
-    Ask Mistral LLM to split story into JSON scenes.
-    """
-
-    prompt = f"""
-    Split the following children's story into exactly {num_scenes} scenes.
-
-    Return STRICT JSON format only:
-    [
-      {{
-        "text": "short narration",
-        "prompt": "children's book illustration description, detailed, colorful, 4k"
-      }}
-    ]
-
-    Story:
-    {story_text}
-    """
-
-    response = client.chat.complete(
-        model="mistral-large-latest",  # you can also use mistral-small-latest
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7,
-    )
-
-    raw_content = response.choices[0].message.content or ""
-
-    start = raw_content.find("[")
-    end = raw_content.rfind("]") + 1
-    if start == -1 or end == 0:
-        raise ValueError(f"Could not find JSON in model response: {raw_content!r}")
-
-    json_text = raw_content[start:end]
-    return json.loads(json_text)
-
-
 # def generate_story_video(story: str, output_path: str , language: str = "english") -> str:
 def generate_story_video(
     story: str, 
@@ -199,11 +166,22 @@ def generate_story_video(
     title, genre = _generate_title_and_genre(english_story)
     print(f"Generated Title: {title}, Genre: {genre}")
 
+    print("\nSTEP 1 — Extract Characters")
+    characters = extract_characters(english_story)
 
+    print("\nSTEP 2 — Scene Planning")
+    plan = plan_scenes(english_story, characters)
+
+    # Convert plan into scenes format used later
+    # scenes = plan
+    if isinstance(plan, dict) and "scenes" in plan:
+        scenes = plan["scenes"]
+    else:
+        scenes = plan
     
-    scenes = _generate_scenes_from_story(english_story)
-    if not scenes:
-        raise ValueError("No scenes generated from story.")
+    # scenes = _generate_scenes_from_story(english_story)
+    # if not scenes:
+    #     raise ValueError("No scenes generated from story.")
 
     clips = []
     temp_files: List[str] = []
@@ -256,21 +234,13 @@ def generate_story_video(
             img_path = os.path.join("output", "videos", f"tmp_image_{i}.jpg")
             temp_files.append(img_path)
 
-            try:
-                print(f"Generating image for scene {i}...")
-                image = hf_client.text_to_image(
-                    scene["prompt"],
-                    model="black-forest-labs/FLUX.1-schnell",
-                )
-                image.save(img_path)
-            except Exception as e:
-                print(f"Error generating image for scene {i}: {e}")
-                # Fallback: black image so pipeline doesn’t break
-                from PIL import Image
+            # try:
+            print(f"Generating image for scene {i}...")
+               
+            seed = random.randint(0,999999)
+            image = generate_scene_image(plan, scene, i, seed)
+            image.save(img_path)
 
-                os.makedirs(os.path.dirname(img_path), exist_ok=True)
-                img = Image.new("RGB", (1024, 1024), color="black")
-                img.save(img_path)
             
             if i == 0:
                 # Save the first image as cover image
