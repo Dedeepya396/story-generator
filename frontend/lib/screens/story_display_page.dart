@@ -87,6 +87,8 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
 List<Subtitle> _subtitles = [];
 String _currentSubtitle = "";
 bool _showSubtitles = false;
+bool _subtitlesLoading = false;
+bool _subtitlesAvailable = false;
   // Speed control variables
   double _playbackSpeed = 1.0;
   bool _showSpeedMenu = false;
@@ -96,20 +98,57 @@ bool _showSubtitles = false;
   bool _showStoryModal = false;
 Future<void> _loadSubtitles() async {
   try {
-    String? subtitleLocation = widget.subtitleUrl;
-    if (subtitleLocation == null || subtitleLocation.isEmpty) {
-      subtitleLocation = widget.videoUrl.replaceAll('.mp4', '.vtt');
+    setState(() {
+      _subtitlesLoading = true;
+      _subtitlesAvailable = false;
+    });
+
+    String subtitleLocation;
+    if (widget.subtitleUrl != null && widget.subtitleUrl!.isNotEmpty) {
+      subtitleLocation = widget.subtitleUrl!;
+    } else {
+      // Derive .vtt from video URL; remove query params if present
+      try {
+        final vuri = Uri.parse(widget.videoUrl);
+        String path = vuri.path;
+        if (path.toLowerCase().endsWith('.mp4')) {
+          path = path.substring(0, path.length - 4) + '.vtt';
+        } else {
+          path = path + '.vtt';
+        }
+        final derived = vuri.replace(path: path, queryParameters: null);
+        subtitleLocation = derived.toString();
+      } catch (e) {
+        subtitleLocation = widget.videoUrl.replaceAll(RegExp(r"(\?.*)?$"), '')
+            .replaceAll('.mp4', '.vtt');
+      }
     }
 
+    print('Attempting to load subtitles from: $subtitleLocation');
     final response = await http.get(Uri.parse(subtitleLocation));
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 && response.body.isNotEmpty) {
+      final parsed = parseSrt(response.body);
       setState(() {
-        _subtitles = parseSrt(response.body);
+        _subtitles = parsed;
+        _subtitlesAvailable = _subtitles.isNotEmpty;
       });
+      if (_subtitlesAvailable) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Subtitles loaded')),
+          );
+        });
+      }
+    } else {
+      print('Subtitle fetch returned ${response.statusCode}');
     }
   } catch (e) {
     print("Subtitle load error: $e");
+  } finally {
+    setState(() {
+      _subtitlesLoading = false;
+    });
   }
 }
   @override
@@ -364,9 +403,25 @@ Widget _buildControls() {
           color: const Color(0xFFFB6F92),
         ),
         onPressed: () {
+          if (_subtitlesLoading) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Subtitles are still loading...')),
+            );
+            return;
+          }
+          if (!_subtitlesAvailable) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('No subtitles available for this video')),
+            );
+            return;
+          }
           setState(() {
             _showSubtitles = !_showSubtitles;
           });
+          if (_showSubtitles) {
+            // immediately update current subtitle for the current position
+            _updateSubtitle(_position);
+          }
         },
         tooltip: "Toggle Subtitles",
       ),
