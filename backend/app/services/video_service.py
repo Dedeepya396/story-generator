@@ -159,13 +159,21 @@ def create_caption_image(text, width, height):
         y += 45
 
     return img
+
+def _format_timestamp(seconds: float) -> str:
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
 # def generate_story_video(story: str, output_path: str , language: str = "english") -> str:
 def generate_story_video(
     story: str, 
     output_path: str, 
     language: str = "english",          # Output language for audio
     input_language: str = "english",    # ADD THIS PARAMETER
-    gender: str = "female"              # New gender parameter
+    gender: str = "female",             # New gender parameter
+    produce_subtitle_file: bool = True,   # create a .vtt sidecar (always created)
+    burn_in_subtitles: bool = False,      # if True, burn captions into video
 ) -> Tuple[str, Optional[str], Optional[str], bool]:  # Added bool for voice_fallback
     """
     Main entry used by the FastAPI route.
@@ -224,6 +232,8 @@ def generate_story_video(
     clips = []
     temp_files: List[str] = []
     any_voice_fallback = False
+    subtitle_cues: List[Dict] = []
+    current_time = 0.0
 
     try:
         for i, scene in enumerate(scenes):
@@ -294,17 +304,21 @@ def generate_story_video(
             video_clip = ImageClip(img_path).set_duration(audio_clip.duration)
             video_clip = video_clip.set_audio(audio_clip)
 
-            # Create caption image
-            # caption_img = create_caption_image(scene["text"], video_clip.w, video_clip.h)
+            # Prepare subtitle cue (sidecar) and optionally burn-in caption
             caption_text = translated_text if language.lower() != "english" else scene["text"]
-            caption_img = create_caption_image(caption_text, video_clip.w, video_clip.h)
-            caption_path = f"output/videos/tmp_caption_{i}.png"
-            caption_img.save(caption_path)
-            temp_files.append(caption_path)
+            start_t = current_time
+            end_t = current_time + float(audio_clip.duration)
+            subtitle_cues.append({"start": start_t, "end": end_t, "text": caption_text})
+            current_time = end_t
 
-            caption_clip = ImageClip(caption_path).set_duration(audio_clip.duration)
+            if burn_in_subtitles:
+                caption_img = create_caption_image(caption_text, video_clip.w, video_clip.h)
+                caption_path = f"output/videos/tmp_caption_{i}.png"
+                caption_img.save(caption_path)
+                temp_files.append(caption_path)
 
-            video_clip = CompositeVideoClip([video_clip, caption_clip])
+                caption_clip = ImageClip(caption_path).set_duration(audio_clip.duration)
+                video_clip = CompositeVideoClip([video_clip, caption_clip])
 
             video_clip.fps = 24
             clips.append(video_clip)
@@ -319,6 +333,19 @@ def generate_story_video(
             codec="libx264",
             audio_codec="aac",
         )
+        # Write WebVTT sidecar if requested (client can use this to toggle CC)
+        if produce_subtitle_file and subtitle_cues:
+            try:
+                vtt_path = os.path.splitext(output_path)[0] + ".vtt"
+                with open(vtt_path, "w", encoding="utf-8") as vf:
+                    vf.write("WEBVTT\n\n")
+                    for cue in subtitle_cues:
+                        start_s = _format_timestamp(cue["start"])  # HH:MM:SS.mmm
+                        end_s = _format_timestamp(cue["end"])
+                        vf.write(f"{start_s} --> {end_s}\n")
+                        vf.write(f"{cue['text']}\n\n")
+            except Exception as e:
+                print(f"Failed to write VTT file: {e}")
     finally:
         # Close clips & audio to release file handles
         for clip in clips:

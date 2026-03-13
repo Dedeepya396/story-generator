@@ -43,6 +43,7 @@ class _AllStoriesPageState extends State<AllStoriesPage> {
                 videoUrl: videoUrl,
                 storyText: storyText.isNotEmpty ? storyText : null,
                 storyTitle: title,
+                subtitleUrl: s['subtitleUrl'] ?? s['subtitle_url'],
               ),
             ),
           );
