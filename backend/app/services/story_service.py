@@ -58,7 +58,7 @@ async def list_stories_by_user(user_id: str) -> List[dict]:
                 out[k] = v.isoformat()
         results.append(out)
     print(f"Found {len(results)} stories for userId={user_id}")
-    print(results)
+    # print(results)
     return results
 
 

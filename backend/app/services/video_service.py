@@ -285,9 +285,33 @@ def generate_story_video(
             # try:
             print(f"Generating image for scene {i}...")
                
+            # seed = random.randint(0,999999)
+            # image = generate_scene_image(plan, scene, i, seed)
+            # image.save(img_path)
+            
+            # use try except to ensure we always generate an image, even if the model call fails
             seed = random.randint(0,999999)
-            image = generate_scene_image(plan, scene, i, seed)
-            image.save(img_path)
+            try:
+                image = generate_scene_image(plan, scene, i, seed)
+                image.save(img_path)
+            except Exception as e:
+                print(f"Error generating image for scene {i}: {e}")
+                # Fallback to a blank image or a placeholder
+                # create a simple blank image with PIL
+                from PIL import Image, ImageDraw, ImageFont
+                image = Image.new("RGB", (1024, 1024), color=(73, 109, 137))
+                d = ImageDraw.Draw(image)
+                font = ImageFont.load_default()
+                text = f"Scene {i+1}"
+                text_width, text_height = d.textsize(text, font=font)
+                d.text(
+                    ((1024 - text_width) / 2, (1024 - text_height) / 2),
+                    text,
+                    fill=(255, 255, 255),
+                    font=font
+                )
+                # image = image
+                image.save(img_path)
 
             
             if i == 0:
