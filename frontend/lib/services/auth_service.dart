@@ -89,8 +89,8 @@ class AuthService {
     );
 
     final data = jsonDecode(response.body);
-    // print("Status Code: ${response.statusCode}");
-    // print("Response Body: $data");
+    print("Status Code: ${response.statusCode}");
+    print("Response Body: $data");
 
     if (response.statusCode == 200 && data["access_token"] != null) {
       _accessToken = data["access_token"];
@@ -179,8 +179,8 @@ class AuthService {
       }),
     );
 
-    // print("Status Code: ${response.statusCode}");
-    // print("Body: ${response.body}");
+    print("Status Code: ${response.statusCode}");
+    print("Body: ${response.body}");
 
     final data = jsonDecode(response.body);
 

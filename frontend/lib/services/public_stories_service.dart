@@ -45,18 +45,18 @@ class PublicStoriesService {
     final uri = Uri.parse('$base/stories/public');
 
     // debug log
-    // print('PublicStoriesService.fetchPublicStories: base="$base" uri="$uri"');
+    print('PublicStoriesService.fetchPublicStories: base="$base" uri="$uri"');
 
     try {
       final resp = await http.get(uri, headers: {'Content-Type': 'application/json'});
-      // print('PublicStoriesService.fetchPublicStories: status=${resp.statusCode} body=${resp.body}');
+      print('PublicStoriesService.fetchPublicStories: status=${resp.statusCode} body=${resp.body}');
       if (resp.statusCode == 200 && resp.body.isNotEmpty) {
         final body = jsonDecode(resp.body);
         if (body is List) return List<Map<String, dynamic>>.from(body);
       }
       return [];
     } catch (e) {
-      // print('PublicStoriesService.fetchPublicStories error: $e');
+      print('PublicStoriesService.fetchPublicStories error: $e');
       return [];
     }
   }
