@@ -4,13 +4,64 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 import 'navbar.dart';
+class Subtitle {
+  final Duration start;
+  final Duration end;
+  final String text;
 
+  Subtitle({
+    required this.start,
+    required this.end,
+    required this.text,
+  });
+}
+
+List<Subtitle> parseSrt(String srt) {
+  // Generic VTT/SRT parser: finds timestamp lines and collects following text until blank line
+  final regex = RegExp(r"(\d{2}:\d{2}:\d{2}[\.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[\.,]\d{3})");
+  List<Subtitle> subs = [];
+  final lines = srt.replaceAll('\r', '').split('\n');
+  for (int i = 0; i < lines.length; i++) {
+    final line = lines[i].trim();
+    final m = regex.firstMatch(line);
+    if (m != null) {
+      String startRaw = m.group(1)!;
+      String endRaw = m.group(2)!;
+
+      Duration parseTime(String t) {
+        t = t.replaceAll(',', '.');
+        final parts = t.split(':');
+        final hours = int.parse(parts[0]);
+        final minutes = int.parse(parts[1]);
+        final secParts = parts[2].split('.');
+        final seconds = int.parse(secParts[0]);
+        final ms = int.parse((secParts.length > 1 ? secParts[1] : '0').padRight(3, '0'));
+        return Duration(hours: hours, minutes: minutes, seconds: seconds, milliseconds: ms);
+      }
+
+      final start = parseTime(startRaw);
+      final end = parseTime(endRaw);
+
+      // collect subsequent non-empty lines as subtitle text
+      final buffer = StringBuffer();
+      int j = i + 1;
+      while (j < lines.length && lines[j].trim().isNotEmpty) {
+        buffer.write((buffer.isEmpty ? '' : ' ') + lines[j].trim());
+        j++;
+      }
+
+      subs.add(Subtitle(start: start, end: end, text: buffer.toString()));
+    }
+  }
+  return subs;
+}
 
 class StoryDisplayPage extends StatefulWidget {
   final String videoUrl;
   final bool voiceFallback;
   final String? storyText;
   final String? storyTitle;
+  final String? subtitleUrl;
 
   const StoryDisplayPage({
     super.key,
@@ -18,6 +69,7 @@ class StoryDisplayPage extends StatefulWidget {
     this.voiceFallback = false,
     this.storyText,
     this.storyTitle,
+    this.subtitleUrl,
   });
   @override
   State<StoryDisplayPage> createState() => _StoryDisplayPageState();
@@ -32,7 +84,9 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
   Duration _position = Duration.zero;
   Duration? _duration; // nullable to avoid JS "inSeconds" error
   bool _isScrubbing = false;
-
+List<Subtitle> _subtitles = [];
+String _currentSubtitle = "";
+bool _showSubtitles = false;
   // Speed control variables
   double _playbackSpeed = 1.0;
   bool _showSpeedMenu = false;
@@ -40,7 +94,24 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
 
   // Story text variables
   bool _showStoryModal = false;
+Future<void> _loadSubtitles() async {
+  try {
+    String? subtitleLocation = widget.subtitleUrl;
+    if (subtitleLocation == null || subtitleLocation.isEmpty) {
+      subtitleLocation = widget.videoUrl.replaceAll('.mp4', '.vtt');
+    }
 
+    final response = await http.get(Uri.parse(subtitleLocation));
+
+    if (response.statusCode == 200) {
+      setState(() {
+        _subtitles = parseSrt(response.body);
+      });
+    }
+  } catch (e) {
+    print("Subtitle load error: $e");
+  }
+}
   @override
   void initState() {
     super.initState();
@@ -57,7 +128,7 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
         });
 
         _controller!.play();
-
+        _loadSubtitles();
         // ⭐ Show popup message if voice fallback occurred
         if (widget.voiceFallback) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -92,7 +163,20 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
         });
       });
   }
+  void _updateSubtitle(Duration position) {
+  for (var sub in _subtitles) {
+    if (position >= sub.start && position <= sub.end) {
+      setState(() {
+        _currentSubtitle = sub.text;
+      });
+      return;
+    }
+  }
 
+  setState(() {
+    _currentSubtitle = "";
+  });
+}
   void _videoListener() {
     if (!mounted || _isScrubbing) return;
     final controller = _controller;
@@ -105,6 +189,7 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
       _duration = value.duration; // may be zero, but not a problem
       _isPlaying = value.isPlaying;
     });
+    _updateSubtitle(value.position);
   }
 
 
@@ -214,56 +299,80 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
     );
   }
 
-  Widget _buildControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          iconSize: 32,
-          onPressed: () => _seekRelative(-5),
-          icon: const Icon(Icons.replay_5, color: Color(0xFFFB6F92)),
-        ),
-        const SizedBox(width: 12),
-        InkWell(
-          onTap: _togglePlayPause,
-          borderRadius: BorderRadius.circular(40),
-          child: Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFFFF8FAB), Color(0xFFFB6F92)],
+Widget _buildControls() {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      IconButton(
+        iconSize: 32,
+        onPressed: () => _seekRelative(-5),
+        icon: const Icon(Icons.replay_5, color: Color(0xFFFB6F92)),
+      ),
+
+      const SizedBox(width: 12),
+
+      InkWell(
+        onTap: _togglePlayPause,
+        borderRadius: BorderRadius.circular(40),
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [Color(0xFFFF8FAB), Color(0xFFFB6F92)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x33FB6F92),
+                blurRadius: 10,
+                offset: Offset(0, 4),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x33FB6F92),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(
-              _isPlaying ? Icons.pause : Icons.play_arrow,
-              color: Colors.white,
-              size: 36,
-            ),
+            ],
+          ),
+          child: Icon(
+            _isPlaying ? Icons.pause : Icons.play_arrow,
+            color: Colors.white,
+            size: 36,
           ),
         ),
-        const SizedBox(width: 12),
-        IconButton(
-          iconSize: 32,
-          onPressed: () => _seekRelative(5),
-          icon: const Icon(Icons.forward_5, color: Color(0xFFFB6F92)),
-        ),
-        const SizedBox(width: 12),
-        _buildSpeedButton(),
-        const SizedBox(width: 12),
-        _buildStoryTextButton(),
-      ],
-    );
-  }
+      ),
 
+      const SizedBox(width: 12),
+
+      IconButton(
+        iconSize: 32,
+        onPressed: () => _seekRelative(5),
+        icon: const Icon(Icons.forward_5, color: Color(0xFFFB6F92)),
+      ),
+
+      const SizedBox(width: 12),
+
+      _buildSpeedButton(),
+
+      const SizedBox(width: 12),
+
+      _buildStoryTextButton(),
+
+      const SizedBox(width: 12),
+
+      // ⭐ Subtitle Toggle Button
+      IconButton(
+        iconSize: 32,
+        icon: Icon(
+          _showSubtitles ? Icons.closed_caption : Icons.closed_caption_off,
+          color: const Color(0xFFFB6F92),
+        ),
+        onPressed: () {
+          setState(() {
+            _showSubtitles = !_showSubtitles;
+          });
+        },
+        tooltip: "Toggle Subtitles",
+      ),
+    ],
+  );
+}
   Widget _buildSpeedButton() {
     return PopupMenuButton<double>(
       onSelected: _changeSpeed,
@@ -523,7 +632,38 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
                                       ),
                                     ],
                                   ),
-                                  child: VideoPlayer(controller),
+                                  child: Stack(
+  alignment: Alignment.bottomCenter,
+  children: [
+    VideoPlayer(controller),
+
+    if (_showSubtitles && _currentSubtitle.isNotEmpty)
+      Positioned(
+        bottom: 20,
+        left: 20,
+        right: 20,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            _currentSubtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+  ],
+),
                                 ),
                               ),
                             ),

@@ -172,6 +172,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
         final data = jsonDecode(response.body);
         return {
           'video_url': data['video_path'] ?? data['video_url'],
+          'subtitle_url': data['subtitle_url'],
           'cover_url': data['cover_image'] ?? data['cover_url'],
           'title': data['title'] ?? 'Untitled',
           'genre': data['genre'] ?? 'General',
@@ -188,7 +189,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
   }
 
 
-  Future<Map<String, dynamic>> _submitStory(String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre) async {
+  Future<Map<String, dynamic>> _submitStory(String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre, String? subtitleUrl) async {
     final storyText = _storyController.text.trim();
 
     if (storyText.isEmpty) {
@@ -214,6 +215,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
       genre: genreToSend,
       videoUrl: videoUrl,
       coverUrl: coverUrl,
+      subtitleUrl: subtitleUrl,
     );
 
     return res;
@@ -782,13 +784,14 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                     }
 
                     final videoUrl = videoResults['video_url'];
+                    final subtitleUrl = videoResults['subtitle_url'];
                     final coverUrl = videoResults['cover_url'];
                     final title = videoResults['title'] ?? 'Untitled';
                     final genre = videoResults['genre'] ?? 'General';
                     final voiceFallback = videoResults['voice_fallback'] ?? false;
 
-                    // Submit story to database
-                    final res = await _submitStory(videoUrl, coverUrl, title, genre);
+                    // Submit story to database (include subtitle URL)
+                    final res = await _submitStory(videoUrl, coverUrl, title, genre, subtitleUrl);
 
                     if (res['success'] == true) {
                       Navigator.push(
@@ -799,6 +802,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                             voiceFallback: voiceFallback,
                             storyText: _storyController.text,
                             storyTitle: title,
+                            subtitleUrl: subtitleUrl,
                           ),
                         ),
                       );

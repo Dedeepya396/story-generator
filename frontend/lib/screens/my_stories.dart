@@ -122,10 +122,11 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
             context,
             MaterialPageRoute(
               builder: (_) => StoryDisplayPage(
-                videoUrl: videoUrl,
-                storyText: storyText.isNotEmpty ? storyText : null,
-                storyTitle: title,
-              ),
+                    videoUrl: videoUrl,
+                    storyText: storyText.isNotEmpty ? storyText : null,
+                    storyTitle: title,
+                    subtitleUrl: s['subtitleUrl'] ?? s['subtitle_url'],
+                  ),
             ),
           );
         } else {

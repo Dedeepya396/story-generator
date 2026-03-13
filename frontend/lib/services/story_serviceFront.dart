@@ -13,6 +13,7 @@ class StoryService {
     String? genre,
     String? videoUrl,
     String? coverUrl,
+    String? subtitleUrl,
     required bool displayFlag,
   }) async {
     final user = AuthService.user;
@@ -34,6 +35,7 @@ class StoryService {
       'genre': genre,
       'videoUrl': videoUrl,
       'coverUrl': coverUrl,
+      'subtitleUrl': subtitleUrl,
       'displayFlag': displayFlag,
     };
 
