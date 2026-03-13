@@ -97,9 +97,7 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -110,40 +108,27 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Deleting story...'),
-        duration: Duration(seconds: 1),
-      ),
+      const SnackBar(content: Text('Deleting story...'), duration: Duration(seconds: 1)),
     );
 
     try {
       final result = await MyStoriesApi.StoryService.deleteStory(storyId);
-
       if (!mounted) return;
 
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Story deleted successfully'),
-            duration: Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('✅ Story deleted successfully'), duration: Duration(seconds: 2)),
         );
         await _loadStories();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Failed to delete: ${result['message'] ?? 'Unknown error'}'),
-            duration: const Duration(seconds: 2),
-          ),
+          SnackBar(content: Text('❌ Failed to delete: ${result['message'] ?? 'Unknown error'}')),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error: ${e.toString()}'),
-          duration: const Duration(seconds: 2),
-        ),
+        SnackBar(content: Text('❌ Error: ${e.toString()}')),
       );
     }
   }
@@ -152,28 +137,19 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
     try {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⏳ Downloading... Please wait'),
-          duration: Duration(seconds: 30),
-        ),
+        const SnackBar(content: Text('⏳ Downloading... Please wait'), duration: Duration(seconds: 30)),
       );
 
       await _downloadVideoWebBlob(videoUrl, videoTitle);
       
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✅ Downloaded: $videoTitle.mp4'),
-          duration: const Duration(seconds: 3),
-        ),
+        SnackBar(content: Text('✅ Downloaded: $videoTitle.mp4'), duration: const Duration(seconds: 3)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Download failed: ${e.toString()}'),
-          duration: const Duration(seconds: 3),
-        ),
+        SnackBar(content: Text('❌ Download failed: ${e.toString()}')),
       );
     }
   }
@@ -183,7 +159,6 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
       print('🔽 Starting download from: $videoUrl');
       
       final response = await http.get(Uri.parse(videoUrl));
-      
       if (response.statusCode != 200) {
         throw Exception('Failed to download video: ${response.statusCode}');
       }
@@ -215,8 +190,8 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
     final title = (s['title'] ?? 'Untitled').toString();
     final videoUrl = (s['videoUrl'] ?? '').toString();
     final coverUrl = (s['coverUrl'] ?? '').toString();
-    final storyText = (s['description'] ?? '').toString();
     final storyId = (s['id'] ?? s['_id'] ?? '').toString();
+    final storyText = (s['description'] ?? '').toString();
 
     Widget cover;
     if (coverUrl.isNotEmpty) {
@@ -293,8 +268,8 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
                         PopupMenuItem<String>(
                           value: 'download',
                           enabled: videoUrl.isNotEmpty,
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Icon(Icons.download, size: 18),
                               SizedBox(width: 10),
                               Text('Download'),
@@ -303,8 +278,8 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
                         ),
                         PopupMenuItem<String>(
                           value: 'delete',
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Icon(Icons.delete, size: 18, color: Colors.red),
                               SizedBox(width: 10),
                               Text('Delete', style: TextStyle(color: Colors.red)),

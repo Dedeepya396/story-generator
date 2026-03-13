@@ -61,9 +61,7 @@ def upload_image(file_path, file_name=None):
 
 
 def delete_video_from_cloudinary(video_url: str) -> bool:
-    """
-    Delete a video from Cloudinary using its URL.
-    """
+    """Delete a video from Cloudinary using its URL."""
     try:
         if not video_url:
             print("⚠️ Empty video URL provided")
@@ -76,7 +74,6 @@ def delete_video_from_cloudinary(video_url: str) -> bool:
             return False
         
         public_id = match.group(1)
-        
         print(f"🗑️ Deleting video from Cloudinary: {public_id}")
         
         response = cloudinary.uploader.destroy(
@@ -97,9 +94,7 @@ def delete_video_from_cloudinary(video_url: str) -> bool:
 
 
 def delete_image_from_cloudinary(image_url: str) -> bool:
-    """
-    Delete an image from Cloudinary using its URL.
-    """
+    """Delete an image from Cloudinary using its URL."""
     try:
         if not image_url:
             print("⚠️ Empty image URL provided")
@@ -112,7 +107,6 @@ def delete_image_from_cloudinary(image_url: str) -> bool:
             return False
         
         public_id = match.group(1)
-        
         print(f"🗑️ Deleting image from Cloudinary: {public_id}")
         
         response = cloudinary.uploader.destroy(
@@ -130,4 +124,3 @@ def delete_image_from_cloudinary(image_url: str) -> bool:
     except Exception as e:
         print(f"❌ Error deleting image from Cloudinary: {e}")
         return False
-
