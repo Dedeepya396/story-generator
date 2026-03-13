@@ -564,16 +564,16 @@ Future<void> _loadSubtitles() async {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
-                    const Text(
-                      '✨ Enjoy Your Story! ✨',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF49243E),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+                    // const Text(
+                    //   '✨ Enjoy Your Story! ✨',
+                    //   textAlign: TextAlign.center,
+                    //   style: TextStyle(
+                    //     fontSize: 24,
+                    //     fontWeight: FontWeight.w800,
+                    //     color: Color(0xFF49243E),
+                    //     letterSpacing: 0.5,
+                    //   ),
+                    // ),
                     const SizedBox(height: 12),
                     if (widget.storyTitle != null && widget.storyTitle!.isNotEmpty)
                       Text(

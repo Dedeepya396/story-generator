@@ -1374,6 +1374,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                                   voiceFallback: voiceFallback,
                                   storyText: _storyController.text,
                                   storyTitle: title,
+                                  genre: genre,
                                   subtitleUrl: subtitleUrl,
                                 ),
                               ),
