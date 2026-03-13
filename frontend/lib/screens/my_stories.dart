@@ -230,6 +230,7 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
                     videoUrl: videoUrl,
                     storyText: storyText.isNotEmpty ? storyText : null,
                     storyTitle: title,
+                    genre: (s['genre'] ?? '').toString(),
                     subtitleUrl: s['subtitleUrl'] ?? s['subtitle_url'],
                   ),
             ),

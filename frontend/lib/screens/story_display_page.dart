@@ -61,6 +61,7 @@ class StoryDisplayPage extends StatefulWidget {
   final bool voiceFallback;
   final String? storyText;
   final String? storyTitle;
+  final String? genre;
   final String? subtitleUrl;
 
   const StoryDisplayPage({
@@ -69,6 +70,7 @@ class StoryDisplayPage extends StatefulWidget {
     this.voiceFallback = false,
     this.storyText,
     this.storyTitle,
+    this.genre,
     this.subtitleUrl,
   });
   @override
@@ -338,96 +340,6 @@ Future<void> _loadSubtitles() async {
     );
   }
 
-Widget _buildControls() {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      IconButton(
-        iconSize: 32,
-        onPressed: () => _seekRelative(-5),
-        icon: const Icon(Icons.replay_5, color: Color(0xFFFB6F92)),
-      ),
-
-      const SizedBox(width: 12),
-
-      InkWell(
-        onTap: _togglePlayPause,
-        borderRadius: BorderRadius.circular(40),
-        child: Container(
-          width: 64,
-          height: 64,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Color(0xFFFF8FAB), Color(0xFFFB6F92)],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x33FB6F92),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Icon(
-            _isPlaying ? Icons.pause : Icons.play_arrow,
-            color: Colors.white,
-            size: 36,
-          ),
-        ),
-      ),
-
-      const SizedBox(width: 12),
-
-      IconButton(
-        iconSize: 32,
-        onPressed: () => _seekRelative(5),
-        icon: const Icon(Icons.forward_5, color: Color(0xFFFB6F92)),
-      ),
-
-      const SizedBox(width: 12),
-
-      _buildSpeedButton(),
-
-      const SizedBox(width: 12),
-
-      _buildStoryTextButton(),
-
-      const SizedBox(width: 12),
-
-      // ⭐ Subtitle Toggle Button
-      IconButton(
-        iconSize: 32,
-        icon: Icon(
-          _showSubtitles ? Icons.closed_caption : Icons.closed_caption_off,
-          color: const Color(0xFFFB6F92),
-        ),
-        onPressed: () {
-          if (_subtitlesLoading) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Subtitles are still loading...')),
-            );
-            return;
-          }
-          if (!_subtitlesAvailable) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No subtitles available for this video')),
-            );
-            return;
-          }
-          setState(() {
-            _showSubtitles = !_showSubtitles;
-          });
-          if (_showSubtitles) {
-            // immediately update current subtitle for the current position
-            _updateSubtitle(_position);
-          }
-        },
-        tooltip: "Toggle Subtitles",
-      ),
-    ],
-  );
-}
   Widget _buildSpeedButton() {
     return PopupMenuButton<double>(
       onSelected: _changeSpeed,
@@ -482,24 +394,6 @@ Widget _buildControls() {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStoryTextButton() {
-    if (widget.storyText == null || widget.storyText!.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return IconButton(
-      iconSize: 32,
-      onPressed: () {
-        setState(() {
-          _showStoryModal = true;
-        });
-        _showStoryTextModal();
-      },
-      icon: const Icon(Icons.description, color: Color(0xFFFB6F92)),
-      tooltip: 'View Story',
     );
   }
 
@@ -623,119 +517,301 @@ Widget _buildControls() {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
-          'Your Story Video',
+          '🎬 Story Time!',
           style: TextStyle(
             color: Color(0xFF49243E),
             fontWeight: FontWeight.w700,
+            fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.white.withOpacity(0.95),
+        elevation: 2,
         iconTheme: const IconThemeData(color: Color(0xFF49243E)),
-        systemOverlayStyle: null,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/home',
+              (route) => false,
+            );
+          },
+        ),
       ),
       backgroundColor: const Color(0xFFFFF7FB),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFFF7FB), Color(0xFFFFE4F1)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+          image: DecorationImage(
+            image: AssetImage('images/story_display_page_background.png'),
+            fit: BoxFit.cover,
           ),
         ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                const Text(
-                  'Enjoy Your Magical Story!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF49243E),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final maxVideoHeight = constraints.maxHeight * 0.6;
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxHeight: maxVideoHeight,
-                              maxWidth: constraints.maxWidth * 0.95,
-                            ),
-                            child: AspectRatio(
-                              aspectRatio: controller.value.aspectRatio,
-                              child: ClipRRect(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(24)),
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Color(0x33000000),
-                                        blurRadius: 12,
-                                        offset: Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Stack(
-  alignment: Alignment.bottomCenter,
-  children: [
-    VideoPlayer(controller),
-
-    if (_showSubtitles && _currentSubtitle.isNotEmpty)
-      Positioned(
-        bottom: 20,
-        left: 20,
-        right: 20,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 8,
-          ),
           decoration: BoxDecoration(
-            color: Colors.black54,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            _currentSubtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFFFFE4F1).withOpacity(0.3),
+                const Color(0xFFFFF7FB).withOpacity(0.3),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
           ),
-        ),
-      ),
-  ],
-),
-                                ),
-                              ),
+          child: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    const Text(
+                      '✨ Enjoy Your Story! ✨',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF49243E),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (widget.storyTitle != null && widget.storyTitle!.isNotEmpty)
+                      Text(
+                        widget.storyTitle!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFFB6F92),
+                        ),
+                      ),
+                    if (widget.genre != null && widget.genre!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFB6F92).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFFB6F92),
+                              width: 1.5,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          _buildProgressBar(),
-                          const SizedBox(height: 8),
-                          _buildControls(),
-                          const SizedBox(height: 12),
-                        ],
-                      );
-                    },
-                  ),
+                          child: Text(
+                            widget.genre!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFFB6F92),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final maxVideoHeight = constraints.maxHeight * 0.65;
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: const BorderRadius.all(Radius.circular(28)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFFB6F92).withOpacity(0.4),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxHeight: maxVideoHeight,
+                                    maxWidth: constraints.maxWidth * 0.95,
+                                  ),
+                                  child: AspectRatio(
+                                    aspectRatio: controller.value.aspectRatio,
+                                    child: ClipRRect(
+                                      borderRadius:
+                                          const BorderRadius.all(Radius.circular(28)),
+                                      child: Container(
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black,
+                                        ),
+                                        child: Stack(
+                                          alignment: Alignment.bottomCenter,
+                                          children: [
+                                            VideoPlayer(controller),
+                                            if (_showSubtitles && _currentSubtitle.isNotEmpty)
+                                              Positioned(
+                                                bottom: 20,
+                                                left: 20,
+                                                right: 20,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 8,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black87,
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(
+                                                      color: const Color(0xFFFB6F92),
+                                                      width: 2,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    _currentSubtitle,
+                                                    textAlign: TextAlign.center,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFFFFF7FB).withOpacity(0.95),
+                                      const Color(0xFFFFE4F1).withOpacity(0.95),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                  borderRadius: const BorderRadius.all(Radius.circular(24)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFFB6F92).withOpacity(0.2),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, -2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    _buildProgressBar(),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        IconButton(
+                                          iconSize: 28,
+                                          onPressed: () => _seekRelative(-5),
+                                          icon: const Icon(Icons.replay_5,
+                                              color: Color(0xFFFB6F92)),
+                                          tooltip: '5s Back',
+                                        ),
+                                        const SizedBox(width: 8),
+                                        InkWell(
+                                          onTap: _togglePlayPause,
+                                          borderRadius: BorderRadius.circular(40),
+                                          child: Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: LinearGradient(
+                                                colors: [Color(0xFFFF8FAB), Color(0xFFFB6F92)],
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Color(0x44FB6F92),
+                                                  blurRadius: 12,
+                                                  offset: Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Icon(
+                                              _isPlaying ? Icons.pause : Icons.play_arrow,
+                                              color: Colors.white,
+                                              size: 32,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          iconSize: 28,
+                                          onPressed: () => _seekRelative(5),
+                                          icon: const Icon(Icons.forward_5,
+                                              color: Color(0xFFFB6F92)),
+                                          tooltip: '5s Forward',
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildSpeedButton(),
+                                        const SizedBox(width: 8),
+                                        if (widget.storyText != null && widget.storyText!.isNotEmpty)
+                                          IconButton(
+                                            iconSize: 24,
+                                            onPressed: _showStoryTextModal,
+                                            icon: const Icon(Icons.description,
+                                                color: Color(0xFFFB6F92)),
+                                            tooltip: 'Story Text',
+                                          ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          iconSize: 24,
+                                          icon: Icon(
+                                            _showSubtitles
+                                                ? Icons.closed_caption
+                                                : Icons.closed_caption_off,
+                                            color: const Color(0xFFFB6F92),
+                                          ),
+                                          onPressed: () {
+                                            if (_subtitlesLoading) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Subtitles loading...')),
+                                              );
+                                              return;
+                                            }
+                                            if (!_subtitlesAvailable) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'No subtitles available')),
+                                              );
+                                              return;
+                                            }
+                                            setState(() {
+                                              _showSubtitles = !_showSubtitles;
+                                            });
+                                            if (_showSubtitles) {
+                                              _updateSubtitle(_position);
+                                            }
+                                          },
+                                          tooltip: 'Subtitles',
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
