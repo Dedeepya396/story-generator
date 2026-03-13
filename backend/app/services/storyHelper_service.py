@@ -147,7 +147,7 @@ def generate_scene_image(plan, scene, i, seed):
 
     except Exception:
 
-        imgage = Image.new("RGB",(1024,1024),"black")
+        image = Image.new("RGB",(1024,1024),"black")
         # img.save(path)
 
     return image

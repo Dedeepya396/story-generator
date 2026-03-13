@@ -17,9 +17,11 @@ import random
 from app.services.ai4bharat_service import generate_multilingual_audio
 from app.services.indic_translation_service import translate_to_english  
 from app.services.storyHelper_service import extract_characters, plan_scenes, generate_scene_image
-
-
-
+from moviepy.video.tools.subtitles import SubtitlesClip
+from moviepy.video.VideoClip import TextClip
+from moviepy.editor import CompositeVideoClip
+from PIL import Image, ImageDraw, ImageFont
+from moviepy.editor import ImageClip, CompositeVideoClip
 # Import AI4Bharat service
 from app.services.ai4bharat_service import generate_multilingual_audio
 from app.services.indic_translation_service import translate_to_english  
@@ -119,8 +121,44 @@ Story:
     except Exception as e:
         print(f"_generate_title_and_genre failed: {e}")
         return None, "Other"
+def create_caption_image(text, width, height):
+    img = Image.new("RGBA", (width, height), (0,0,0,0))
+    draw = ImageDraw.Draw(img)
 
+    try:
+        font = ImageFont.truetype("arial.ttf", 40)
+    except:
+        font = ImageFont.load_default()
 
+    max_width = int(width * 0.8)
+
+    words = text.split()
+    lines = []
+    current = ""
+    
+    for word in words:
+        test = current + " " + word if current else word
+        bbox = draw.textbbox((0,0), test, font=font)
+        if bbox[2] <= max_width:
+            current = test
+        else:
+            lines.append(current)
+            current = word
+
+    if current:
+        lines.append(current)
+
+    y = height * 0.75
+
+    for line in lines:
+        bbox = draw.textbbox((0,0), line, font=font)
+        w = bbox[2]
+        x = (width - w) / 2
+
+        draw.text((x, y), line, font=font, fill="white")
+        y += 45
+
+    return img
 # def generate_story_video(story: str, output_path: str , language: str = "english") -> str:
 def generate_story_video(
     story: str, 
@@ -255,9 +293,21 @@ def generate_story_video(
             # --- C. Video clip per scene ---
             video_clip = ImageClip(img_path).set_duration(audio_clip.duration)
             video_clip = video_clip.set_audio(audio_clip)
+
+            # Create caption image
+            # caption_img = create_caption_image(scene["text"], video_clip.w, video_clip.h)
+            caption_text = translated_text if language.lower() != "english" else scene["text"]
+            caption_img = create_caption_image(caption_text, video_clip.w, video_clip.h)
+            caption_path = f"output/videos/tmp_caption_{i}.png"
+            caption_img.save(caption_path)
+            temp_files.append(caption_path)
+
+            caption_clip = ImageClip(caption_path).set_duration(audio_clip.duration)
+
+            video_clip = CompositeVideoClip([video_clip, caption_clip])
+
             video_clip.fps = 24
             clips.append(video_clip)
-
         if not clips:
             raise ValueError("No clips created from scenes.")
 
