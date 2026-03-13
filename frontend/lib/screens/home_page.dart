@@ -48,6 +48,7 @@ class _HomePageState extends State<HomePage> {
     final title = (s['title'] ?? 'Untitled').toString();
     final videoUrl = (s['videoUrl'] ?? '').toString();
     final coverUrl = (s['coverUrl'] ?? '').toString();
+    final storyText = (s['description'] ?? '').toString();
 
     final cover = coverUrl.isNotEmpty
         ? Image.network(
@@ -70,7 +71,11 @@ class _HomePageState extends State<HomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => StoryDisplayPage(videoUrl: videoUrl),
+              builder: (_) => StoryDisplayPage(
+                videoUrl: videoUrl,
+                storyText: storyText.isNotEmpty ? storyText : null,
+                storyTitle: title,
+              ),
             ),
           );
         } else {

@@ -9,11 +9,15 @@ import 'navbar.dart';
 class StoryDisplayPage extends StatefulWidget {
   final String videoUrl;
   final bool voiceFallback;
+  final String? storyText;
+  final String? storyTitle;
 
   const StoryDisplayPage({
     super.key,
     required this.videoUrl,
     this.voiceFallback = false,
+    this.storyText,
+    this.storyTitle,
   });
   @override
   State<StoryDisplayPage> createState() => _StoryDisplayPageState();
@@ -33,6 +37,9 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
   double _playbackSpeed = 1.0;
   bool _showSpeedMenu = false;
   final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+
+  // Story text variables
+  bool _showStoryModal = false;
 
   @override
   void initState() {
@@ -251,6 +258,8 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
         ),
         const SizedBox(width: 12),
         _buildSpeedButton(),
+        const SizedBox(width: 12),
+        _buildStoryTextButton(),
       ],
     );
   }
@@ -307,6 +316,87 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoryTextButton() {
+    if (widget.storyText == null || widget.storyText!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return IconButton(
+      iconSize: 32,
+      onPressed: () {
+        setState(() {
+          _showStoryModal = true;
+        });
+        _showStoryTextModal();
+      },
+      icon: const Icon(Icons.description, color: Color(0xFFFB6F92)),
+      tooltip: 'View Story',
+    );
+  }
+
+  void _showStoryTextModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Color(0xFFFFF7FB),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.storyTitle ?? 'Story',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF49243E),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Color(0xFF49243E)),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: Color(0xFFFFCFE2), thickness: 1),
+            // Story text content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  widget.storyText ?? 'No story text available',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF49243E),
+                    height: 1.6,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

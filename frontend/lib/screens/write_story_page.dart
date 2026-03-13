@@ -797,6 +797,8 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                           builder: (context) => StoryDisplayPage(
                             videoUrl: videoUrl,
                             voiceFallback: voiceFallback,
+                            storyText: _storyController.text,
+                            storyTitle: title,
                           ),
                         ),
                       );

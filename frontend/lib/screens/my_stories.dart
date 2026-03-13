@@ -86,6 +86,7 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
     final title = (s['title'] ?? 'Untitled').toString();
     final videoUrl = (s['videoUrl'] ?? '').toString();
     final coverUrl = (s['coverUrl'] ?? '').toString();
+    final storyText = (s['description'] ?? '').toString();
 
     Widget cover;
     if (coverUrl.isNotEmpty) {
@@ -119,7 +120,13 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
         if (videoUrl.isNotEmpty) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => StoryDisplayPage(videoUrl: videoUrl)),
+            MaterialPageRoute(
+              builder: (_) => StoryDisplayPage(
+                videoUrl: videoUrl,
+                storyText: storyText.isNotEmpty ? storyText : null,
+                storyTitle: title,
+              ),
+            ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
