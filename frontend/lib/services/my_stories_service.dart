@@ -39,7 +39,7 @@ class StoryService {
     try {
       final base = AuthService.baseUrl.isNotEmpty ? AuthService.baseUrl : defaultBase;
       final uri = Uri.parse('$base/stories/');
-      print('StoryService.createStory: POST $uri payload=$payload');
+      // print('StoryService.createStory: POST $uri payload=$payload');
       final resp = await http.post(
         uri,
         headers: {
@@ -48,7 +48,7 @@ class StoryService {
         },
         body: jsonEncode(payload),
       );
-      print('StoryService.createStory: status=${resp.statusCode} body=${resp.body}');
+      // print('StoryService.createStory: status=${resp.statusCode} body=${resp.body}');
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
@@ -71,7 +71,7 @@ class StoryService {
     final uri = Uri.parse('$base/stories/user/$userId');
 
     try {
-      print('StoryService.fetchStoriesByUser: GET $uri');
+      // print('StoryService.fetchStoriesByUser: GET $uri');
       final resp = await http.get(
         uri,
         headers: {
@@ -80,7 +80,7 @@ class StoryService {
         },
       );
 
-      print('StoryService.fetchStoriesByUser: status=${resp.statusCode} body=${resp.body}');
+      // print('StoryService.fetchStoriesByUser: status=${resp.statusCode} body=${resp.body}');
       if (resp.statusCode == 200) {
         final body = resp.body.isNotEmpty ? jsonDecode(resp.body) : [];
         if (body is List) {
@@ -91,7 +91,7 @@ class StoryService {
         return [];
       }
     } catch (e) {
-      print('StoryService.fetchStoriesByUser error: $e');
+      // print('StoryService.fetchStoriesByUser error: $e');
       return [];
     }
   }
