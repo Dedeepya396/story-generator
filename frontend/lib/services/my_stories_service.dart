@@ -95,4 +95,39 @@ class StoryService {
       return [];
     }
   }
+
+  /// Delete a story permanently by ID
+  static Future<Map<String, dynamic>> deleteStory(String storyId) async {
+    final token = AuthService.accessToken;
+    if (token == null) {
+      return {'success': false, 'message': 'User not logged in'};
+    }
+
+    final base = AuthService.baseUrl.isNotEmpty ? AuthService.baseUrl : defaultBase;
+    final uri = Uri.parse('$base/stories/$storyId');
+
+    try {
+      print('StoryService.deleteStory: DELETE $uri');
+      final resp = await http.delete(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('StoryService.deleteStory: status=${resp.statusCode} body=${resp.body}');
+      
+      if (resp.statusCode == 200) {
+        final body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+        return {'success': true, 'data': body};
+      } else {
+        final msg = resp.body.isNotEmpty ? resp.body : 'Failed to delete story';
+        return {'success': false, 'message': msg};
+      }
+    } catch (e) {
+      print('StoryService.deleteStory error: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
 }

@@ -59,3 +59,75 @@ def upload_image(file_path, file_name=None):
         print("Error during image upload:", e)
         return None
 
+
+def delete_video_from_cloudinary(video_url: str) -> bool:
+    """
+    Delete a video from Cloudinary using its URL.
+    """
+    try:
+        if not video_url:
+            print("⚠️ Empty video URL provided")
+            return False
+        
+        import re
+        match = re.search(r'/upload/(?:v[\d]+/)?(.+?)(?:\.\w+)?(?:\?.*)?$', video_url)
+        if not match:
+            print(f"⚠️ Could not extract public_id from URL: {video_url}")
+            return False
+        
+        public_id = match.group(1)
+        
+        print(f"🗑️ Deleting video from Cloudinary: {public_id}")
+        
+        response = cloudinary.uploader.destroy(
+            public_id,
+            resource_type="video"
+        )
+        
+        if response.get('result') == 'ok':
+            print(f"✅ Video deleted successfully: {public_id}")
+            return True
+        else:
+            print(f"❌ Failed to delete video: {response}")
+            return False
+    
+    except Exception as e:
+        print(f"❌ Error deleting video from Cloudinary: {e}")
+        return False
+
+
+def delete_image_from_cloudinary(image_url: str) -> bool:
+    """
+    Delete an image from Cloudinary using its URL.
+    """
+    try:
+        if not image_url:
+            print("⚠️ Empty image URL provided")
+            return False
+        
+        import re
+        match = re.search(r'/upload/(?:v[\d]+/)?(.+?)(?:\.\w+)?(?:\?.*)?$', image_url)
+        if not match:
+            print(f"⚠️ Could not extract public_id from URL: {image_url}")
+            return False
+        
+        public_id = match.group(1)
+        
+        print(f"🗑️ Deleting image from Cloudinary: {public_id}")
+        
+        response = cloudinary.uploader.destroy(
+            public_id,
+            resource_type="image"
+        )
+        
+        if response.get('result') == 'ok':
+            print(f"✅ Image deleted successfully: {public_id}")
+            return True
+        else:
+            print(f"❌ Failed to delete image: {response}")
+            return False
+    
+    except Exception as e:
+        print(f"❌ Error deleting image from Cloudinary: {e}")
+        return False
+

@@ -80,6 +80,27 @@ async def list_public_stories() -> List[dict]:
     return results
 
 
+async def delete_story_by_id(story_id: str) -> bool:
+    """
+    Delete a story by ID from MongoDB.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        oid = ObjectId(story_id)
+    except Exception:
+        print(f"Invalid story ID format: {story_id}")
+        return False
+    
+    result = await db["stories"].delete_one({"_id": oid})
+    
+    if result.deleted_count > 0:
+        print(f"✅ Story {story_id} deleted from database")
+        return True
+    else:
+        print(f"❌ Story {story_id} not found in database")
+        return False
+
+
 # async def list_stories_by_user(user_id: str) -> List[dict]:
 #     docs = db["stories"].find({"userId": ObjectId(user_id)})
 #     results = []

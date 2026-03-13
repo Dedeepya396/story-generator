@@ -3,6 +3,8 @@ import 'story_display_page.dart';
 import 'navbar.dart';
 import '../services/auth_service.dart';
 import '../services/my_stories_service.dart' as MyStoriesApi;
+import 'dart:html' as html;
+import 'package:http/http.dart' as http;
 
 class MyStoriesPage extends StatefulWidget {
   const MyStoriesPage({super.key});
@@ -82,11 +84,139 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
     });
   }
 
+  Future<void> _deleteStory(String storyId, String storyTitle) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Story'),
+        content: Text('Are you sure you want to permanently delete "$storyTitle"?\n\nThis will delete the video from Cloudinary as well.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Deleting story...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    try {
+      final result = await MyStoriesApi.StoryService.deleteStory(storyId);
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Story deleted successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        await _loadStories();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Failed to delete: ${result['message'] ?? 'Unknown error'}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: ${e.toString()}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadVideo(String videoUrl, String videoTitle) async {
+    try {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⏳ Downloading... Please wait'),
+          duration: Duration(seconds: 30),
+        ),
+      );
+
+      await _downloadVideoWebBlob(videoUrl, videoTitle);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Downloaded: $videoTitle.mp4'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Download failed: ${e.toString()}'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadVideoWebBlob(String videoUrl, String videoTitle) async {
+    try {
+      print('🔽 Starting download from: $videoUrl');
+      
+      final response = await http.get(Uri.parse(videoUrl));
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download video: ${response.statusCode}');
+      }
+
+      final blob = html.Blob([response.bodyBytes], 'video/mp4');
+      final blobUrl = html.Url.createObjectUrl(blob);
+      
+      print('✅ Blob created, URL: $blobUrl');
+      
+      final anchor = html.AnchorElement(href: blobUrl)
+        ..setAttribute('download', '$videoTitle.mp4')
+        ..style.display = 'none';
+      
+      html.document.body!.append(anchor);
+      anchor.click();
+      
+      await Future.delayed(const Duration(milliseconds: 100));
+      anchor.remove();
+      html.Url.revokeObjectUrl(blobUrl);
+      
+      print('✅ Download completed for: $videoTitle');
+    } catch (e) {
+      print('❌ Error downloading video: $e');
+      rethrow;
+    }
+  }
+
   Widget _buildCard(Map<String, dynamic> s) {
     final title = (s['title'] ?? 'Untitled').toString();
     final videoUrl = (s['videoUrl'] ?? '').toString();
     final coverUrl = (s['coverUrl'] ?? '').toString();
     final storyText = (s['description'] ?? '').toString();
+    final storyId = (s['id'] ?? s['_id'] ?? '').toString();
 
     Widget cover;
     if (coverUrl.isNotEmpty) {
@@ -142,9 +272,59 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: cover,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: cover,
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'download' && videoUrl.isNotEmpty) {
+                          _downloadVideo(videoUrl, title);
+                        } else if (value == 'delete') {
+                          _deleteStory(storyId, title);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        PopupMenuItem<String>(
+                          value: 'download',
+                          enabled: videoUrl.isNotEmpty,
+                          child: Row(
+                            children: const [
+                              Icon(Icons.download, size: 18),
+                              SizedBox(width: 10),
+                              Text('Download'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: const [
+                              Icon(Icons.delete, size: 18, color: Colors.red),
+                              SizedBox(width: 10),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      icon: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(6),
+                          child: Icon(Icons.more_vert, color: Colors.black87, size: 20),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(
