@@ -29,6 +29,11 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
   Duration? _duration; // nullable to avoid JS "inSeconds" error
   bool _isScrubbing = false;
 
+  // Speed control variables
+  double _playbackSpeed = 1.0;
+  bool _showSpeedMenu = false;
+  final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+
   @override
   void initState() {
     super.initState();
@@ -122,6 +127,18 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
             : target;
 
     controller.seekTo(safeTarget);
+  }
+
+  void _changeSpeed(double speed) {
+    final controller = _controller;
+    if (controller == null) return;
+
+    setState(() {
+      _playbackSpeed = speed;
+      _showSpeedMenu = false;
+    });
+
+    controller.setPlaybackSpeed(speed);
   }
 
   String _formatDuration(Duration d) {
@@ -232,7 +249,66 @@ class _StoryDisplayPageState extends State<StoryDisplayPage> {
           onPressed: () => _seekRelative(5),
           icon: const Icon(Icons.forward_5, color: Color(0xFFFB6F92)),
         ),
+        const SizedBox(width: 12),
+        _buildSpeedButton(),
       ],
+    );
+  }
+
+  Widget _buildSpeedButton() {
+    return PopupMenuButton<double>(
+      onSelected: _changeSpeed,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      color: const Color(0xFFFFF7FB),
+      itemBuilder: (BuildContext context) {
+        return _speedOptions.map((speed) {
+          return PopupMenuItem<double>(
+            value: speed,
+            child: Row(
+              children: [
+                Text(
+                  '${speed}x',
+                  style: TextStyle(
+                    color: _playbackSpeed == speed
+                        ? const Color(0xFFFB6F92)
+                        : const Color(0xFF49243E),
+                    fontWeight: _playbackSpeed == speed
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    fontSize: 16,
+                  ),
+                ),
+                if (_playbackSpeed == speed)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Icon(
+                      Icons.check,
+                      color: Color(0xFFFB6F92),
+                      size: 20,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }).toList();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFFB6F92), width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '${_playbackSpeed}x',
+          style: const TextStyle(
+            color: Color(0xFFFB6F92),
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+      ),
     );
   }
 
