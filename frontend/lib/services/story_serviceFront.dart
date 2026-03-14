@@ -53,7 +53,7 @@ class StoryService {
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
-        final body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+        final body = resp.bodyBytes.isNotEmpty ? jsonDecode(utf8.decode(resp.bodyBytes)) : {};
         return {'success': true, 'data': body};
       } else {
         return {

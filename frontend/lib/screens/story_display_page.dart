@@ -129,8 +129,9 @@ Future<void> _loadSubtitles() async {
     print('Attempting to load subtitles from: $subtitleLocation');
     final response = await http.get(Uri.parse(subtitleLocation));
 
-    if (response.statusCode == 200 && response.body.isNotEmpty) {
-      final parsed = parseSrt(response.body);
+    if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+      final decodedBody = utf8.decode(response.bodyBytes);
+      final parsed = parseSrt(decodedBody);
       setState(() {
         _subtitles = parsed;
         _subtitlesAvailable = _subtitles.isNotEmpty;

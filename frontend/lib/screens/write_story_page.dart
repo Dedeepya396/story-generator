@@ -771,7 +771,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
         return {
           'video_url': data['video_path'] ?? data['video_url'],
           'cover_url': data['cover_image'] ?? data['cover_url'],
