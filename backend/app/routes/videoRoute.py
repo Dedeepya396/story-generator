@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 import os
 import uuid
 from app.schemas.videoSchema import VideoCreate, VideoOut
-from app.schemas.story import StoryRequest
+from app.schemas.story import StoryRequest, RevoiceRequest
 from app.services.videocreation_service import create_video_entry, get_video_by_id, list_videos_by_story
 from app.services.video_service import generate_story_video
 from app.services.videoUpload import upload_video, upload_image
@@ -20,7 +20,7 @@ async def generate_video_endpoint(request: StoryRequest):
 
     # Generate video (now returns cover image path)
     try:
-        cover_image_path, title, genre, voice_fallback = generate_story_video(
+        cover_image_path, title, genre, voice_fallback, scenes = generate_story_video(
             request.story,
             output_path,
             language=request.output_language,
@@ -79,9 +79,57 @@ async def generate_video_endpoint(request: StoryRequest):
             "input_language": request.input_language,
             "output_language": request.output_language,
             "voice_fallback": voice_fallback,
+            "scenes": scenes,
+            "image_urls": [s.get("image_url") for s in scenes if s.get("image_url")]
         }
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Post-generation processing failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/revoice")
+async def revoice_video_endpoint(request: RevoiceRequest):
+    video_id = f"revoice_{str(uuid.uuid4())[:8]}"
+    output_dir = os.path.join("output", "videos")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f"{video_id}.mp4")
+
+    try:
+        # Generate video using EXISTING scenes and images
+        cover_image_path, title, genre, voice_fallback, scenes = generate_story_video(
+            request.story,
+            output_path,
+            language=request.target_language,
+            input_language="english", # The story is already in English in the database/request
+            gender=request.gender,
+            scenes=request.scenes,
+            image_urls=request.image_urls
+        )
+
+        # Upload to Cloudinary
+        video_url = upload_video(output_path, file_name=video_id)
+        
+        vtt_path = os.path.splitext(output_path)[0] + ".vtt"
+        subtitle_url = None
+        if os.path.exists(vtt_path):
+            resp = cloudinary.uploader.upload(vtt_path, resource_type="raw", public_id=f"subtitles_{video_id}")
+            subtitle_url = resp.get("secure_url")
+
+        # Cleanup
+        if os.path.exists(output_path): os.remove(output_path)
+        if os.path.exists(vtt_path): os.remove(vtt_path)
+
+        return {
+            "video_url": video_url,
+            "subtitle_url": subtitle_url,
+            "title": title,
+            "genre": genre,
+            "voice_fallback": voice_fallback,
+            "scenes": scenes
+        }
+
+    except Exception as e:
+        print(f"Re-voicing failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 @router.post("/", response_model=VideoOut)
 async def create_video_endpoint(payload: VideoCreate):
     created = await create_video_entry(payload)

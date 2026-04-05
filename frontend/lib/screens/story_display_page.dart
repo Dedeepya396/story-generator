@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 import 'navbar.dart';
+import '../services/story_serviceFront.dart';
 class Subtitle {
   final Duration start;
   final Duration end;
@@ -63,6 +64,10 @@ class StoryDisplayPage extends StatefulWidget {
   final String? storyTitle;
   final String? genre;
   final String? subtitleUrl;
+  final List<dynamic>? scenes;
+  final List<String>? imageUrls;
+  final bool displayFlag;
+  final String? coverUrl;
 
   const StoryDisplayPage({
     super.key,
@@ -72,6 +77,10 @@ class StoryDisplayPage extends StatefulWidget {
     this.storyTitle,
     this.genre,
     this.subtitleUrl,
+    this.scenes,
+    this.imageUrls,
+    this.displayFlag = true,
+    this.coverUrl,
   });
   @override
   State<StoryDisplayPage> createState() => _StoryDisplayPageState();
@@ -96,8 +105,99 @@ bool _subtitlesAvailable = false;
   bool _showSpeedMenu = false;
   final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
+  // Re-voicing state
+  bool _revoicing = false;
+  String _selectedLanguage = "english";
+  final List<String> _languages = ["english", "hindi", "telugu", "tamil", "malayalam", "kannada", "bengali", "gujarati", "marathi", "punjabi"];
+
   // Story text variables
   bool _showStoryModal = false;
+
+  late String _currentVideoUrl;
+  String? _currentSubtitleUrl;
+
+  Future<void> _revoiceVideo(String lang) async {
+    if (_revoicing) return;
+    if (widget.scenes == null || widget.imageUrls == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Re-voicing not available for this story.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _revoicing = true;
+      _selectedLanguage = lang;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/videos/revoice'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'story': widget.storyText ?? "",
+          'scenes': widget.scenes,
+          'image_urls': widget.imageUrls,
+          'target_language': lang,
+          'gender': 'female', // Defaulting to female for now
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // Re-initialize controller with new video
+        final oldController = _controller;
+        _controller = VideoPlayerController.network(data['video_url'])
+          ..addListener(_videoListener)
+          ..setLooping(false)
+          ..initialize().then((_) {
+            if (!mounted) return;
+            setState(() {
+              _currentVideoUrl = data['video_url'];
+              _currentSubtitleUrl = data['subtitle_url'];
+              _loading = false;
+              _duration = _controller!.value.duration;
+            });
+            _controller!.play();
+            _loadSubtitles(); // Load new subtitles
+            
+            // Clean up old controller
+            if (oldController != null) {
+              oldController.removeListener(_videoListener);
+              oldController.dispose();
+            }
+          });
+          
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Re-voiced successfully to $lang!')),
+        );
+
+        // Save new version to database
+        await StoryService.createStory(
+          title: widget.storyTitle ?? 'Untitled',
+          description: widget.storyText,
+          language: lang,
+          genre: widget.genre,
+          videoUrl: data['video_url'],
+          subtitleUrl: data['subtitle_url'],
+          displayFlag: widget.displayFlag,
+          coverUrl: widget.coverUrl,
+        );
+      } else {
+        throw Exception('Failed to re-voice: ${response.body}');
+      }
+    } catch (e) {
+      print('Re-voice error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error re-voicing: $e')),
+      );
+    } finally {
+      setState(() {
+        _revoicing = false;
+      });
+    }
+  }
 Future<void> _loadSubtitles() async {
   try {
     setState(() {
@@ -106,12 +206,12 @@ Future<void> _loadSubtitles() async {
     });
 
     String subtitleLocation;
-    if (widget.subtitleUrl != null && widget.subtitleUrl!.isNotEmpty) {
-      subtitleLocation = widget.subtitleUrl!;
+    if (_currentSubtitleUrl != null && _currentSubtitleUrl!.isNotEmpty) {
+      subtitleLocation = _currentSubtitleUrl!;
     } else {
       // Derive .vtt from video URL; remove query params if present
       try {
-        final vuri = Uri.parse(widget.videoUrl);
+        final vuri = Uri.parse(_currentVideoUrl);
         String path = vuri.path;
         if (path.toLowerCase().endsWith('.mp4')) {
           path = path.substring(0, path.length - 4) + '.vtt';
@@ -121,7 +221,7 @@ Future<void> _loadSubtitles() async {
         final derived = vuri.replace(path: path, queryParameters: null);
         subtitleLocation = derived.toString();
       } catch (e) {
-        subtitleLocation = widget.videoUrl.replaceAll(RegExp(r"(\?.*)?$"), '')
+        subtitleLocation = _currentVideoUrl.replaceAll(RegExp(r"(\?.*)?$"), '')
             .replaceAll('.mp4', '.vtt');
       }
     }
@@ -157,8 +257,10 @@ Future<void> _loadSubtitles() async {
   @override
   void initState() {
     super.initState();
+    _currentVideoUrl = widget.videoUrl;
+    _currentSubtitleUrl = widget.subtitleUrl;
 
-    _controller = VideoPlayerController.network(widget.videoUrl)
+    _controller = VideoPlayerController.network(_currentVideoUrl)
       ..addListener(_videoListener)
       ..setLooping(false)
       ..initialize().then((_) {
@@ -799,6 +901,24 @@ Future<void> _loadSubtitles() async {
                                           },
                                           tooltip: 'Subtitles',
                                         ),
+                                        const SizedBox(width: 8),
+                                        // Language Re-voicing Dropdown
+                                        if (widget.scenes != null)
+                                          _revoicing 
+                                            ? const SizedBox(
+                                                width: 24, 
+                                                height: 24, 
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFB6F92))
+                                              )
+                                            : PopupMenuButton<String>(
+                                                onSelected: _revoiceVideo,
+                                                icon: const Icon(Icons.language, color: Color(0xFFFB6F92)),
+                                                tooltip: 'Change Language',
+                                                itemBuilder: (context) => _languages.map((l) => PopupMenuItem(
+                                                  value: l,
+                                                  child: Text(l[0].toUpperCase() + l.substring(1)),
+                                                )).toList(),
+                                              ),
                                       ],
                                     ),
                                   ],

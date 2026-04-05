@@ -1,30 +1,22 @@
-import json
-import os
-import time
-import shutil
-from typing import List, Dict
-import re, json, difflib
-from typing import Tuple, Optional
+import re, json, difflib, requests, random, os, time, shutil
+from typing import Tuple, Optional, List, Dict
+from pydantic import BaseModel
+from mistralai import Mistral
 
 from dotenv import load_dotenv
 from gtts import gTTS
 from groq import Groq
 from huggingface_hub import InferenceClient
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
-from mistralai import Mistral
-import random
-# Import AI4Bharat service
+from moviepy.video.tools.subtitles import SubtitlesClip
+from moviepy.video.VideoClip import TextClip
+from moviepy.editor import CompositeVideoClip, ImageClip, AudioFileClip, concatenate_videoclips
+from PIL import Image, ImageDraw, ImageFont
+
+# Import AI4Bharat and translation services
 from app.services.ai4bharat_service import generate_multilingual_audio
 from app.services.indic_translation_service import translate_to_english  
 from app.services.storyHelper_service import extract_characters, plan_scenes, generate_scene_image
-from moviepy.video.tools.subtitles import SubtitlesClip
-from moviepy.video.VideoClip import TextClip
-from moviepy.editor import CompositeVideoClip
-from PIL import Image, ImageDraw, ImageFont
-from moviepy.editor import ImageClip, CompositeVideoClip
-# Import AI4Bharat service
-from app.services.ai4bharat_service import generate_multilingual_audio
-from app.services.indic_translation_service import translate_to_english  
+from app.services.videoUpload import upload_image, upload_video
 
 
 
@@ -174,7 +166,9 @@ def generate_story_video(
     gender: str = "female",             # New gender parameter
     produce_subtitle_file: bool = True,   # create a .vtt sidecar (always created)
     burn_in_subtitles: bool = False,      # if True, burn captions into video
-) -> Tuple[str, Optional[str], Optional[str], bool]:  # Added bool for voice_fallback
+    scenes: Optional[List[Dict]] = None,  # Pre-generated scenes (optional)
+    image_urls: Optional[List[str]] = None, # Pre-generated image URLs (optional)
+) -> Tuple[str, Optional[str], Optional[str], bool, List[Dict]]:  # Added scenes to return
     """
     Main entry used by the FastAPI route.
     Generates a video file at `output_path` from the given story text.
@@ -206,24 +200,29 @@ def generate_story_video(
         print(f"   {english_story}")
         print(f"{'='*70}\n")
     
-    # generate title and genre
-    # title, genre = _generate_title_and_genre(story)
-    # print(f"Generated Title: {title}, Genre: {genre}")
-    title, genre = _generate_title_and_genre(english_story)
-    print(f"Generated Title: {title}, Genre: {genre}")
+    # Only run planning if scenes not provided
+    if scenes is None:
+        # generate title and genre
+        title, genre = _generate_title_and_genre(english_story)
+        print(f"Generated Title: {title}, Genre: {genre}")
 
-    print("\nSTEP 1 — Extract Characters")
-    characters = extract_characters(english_story)
+        print("\nSTEP 1 — Extract Characters")
+        characters = extract_characters(english_story)
 
-    print("\nSTEP 2 — Scene Planning")
-    plan = plan_scenes(english_story, characters)
+        print("\nSTEP 2 — Scene Planning")
+        plan = plan_scenes(english_story, characters)
 
-    # Convert plan into scenes format used later
-    # scenes = plan
-    if isinstance(plan, dict) and "scenes" in plan:
-        scenes = plan["scenes"]
+        # Convert plan into scenes format used later
+        if isinstance(plan, dict) and "scenes" in plan:
+            scenes = plan["scenes"]
+        else:
+            scenes = plan
     else:
-        scenes = plan
+        # If scenes are provided, we don't need to generate title/genre here
+        # but we might want them passed in or generated for the first time
+        # For re-voice, we usually just need the scenes.
+        print("Using provided scene plan...")
+        title, genre = _generate_title_and_genre(english_story) # Still get title/genre for metadata
     
     # scenes = _generate_scenes_from_story(english_story)
     # if not scenes:
@@ -278,16 +277,36 @@ def generate_story_video(
 
             # audio_clip = AudioFileClip(audio_path)
 
-            # --- B. Image with Hugging Face ---
+            # --- B. Image handling ---
             img_path = os.path.join("output", "videos", f"tmp_image_{i}.jpg")
             temp_files.append(img_path)
 
-            # try:
-            print(f"Generating image for scene {i}...")
-               
-            seed = random.randint(0,999999)
-            image = generate_scene_image(plan, scene, i, seed)
-            image.save(img_path)
+            if image_urls is not None and i < len(image_urls):
+                # Download existing image
+                print(f"Downloading existing image for scene {i} from {image_urls[i]}...")
+                import requests
+                img_resp = requests.get(image_urls[i])
+                if img_resp.status_code == 200:
+                    with open(img_path, "wb") as f:
+                        f.write(img_resp.content)
+                else:
+                    print(f"Failed to download image: {image_urls[i]}")
+                    # Fallback or error? For now, create black image
+                    image = Image.new("RGB",(1024,1024),"black")
+                    image.save(img_path)
+            else:
+                # Generate new image
+                print(f"Generating image for scene {i}...")
+                seed = random.randint(0,999999)
+                # We need character info for image generation if not providing image_urls
+                # If we skip character extraction above, character design info is missing.
+                
+                if 'plan' not in locals():
+                    # Minimal plan reconstruction if scenes provided but no image_urls
+                    plan = {"style": "Pixar cinematic 3D animation", "characters": {}} 
+                
+                image = generate_scene_image(plan, scene, i, seed)
+                image.save(img_path)
 
             
             if i == 0:
@@ -321,6 +340,15 @@ def generate_story_video(
                 video_clip = CompositeVideoClip([video_clip, caption_clip])
 
             video_clip.fps = 24
+            
+            # --- NEW: Upload scene image to Cloudinary and store URL in scene dict ---
+            if not image_urls or i >= len(image_urls):
+                print(f"Uploading scene {i} image to Cloudinary...")
+                scene_image_url = upload_image(img_path, file_name=f"scene_{int(time.time())}_{i}")
+                scene["image_url"] = scene_image_url
+            else:
+                scene["image_url"] = image_urls[i]
+
             clips.append(video_clip)
         if not clips:
             raise ValueError("No clips created from scenes.")
@@ -364,4 +392,4 @@ def generate_story_video(
             except Exception:
                 pass
     
-    return cover_image_path, title, genre, any_voice_fallback
+    return cover_image_path, title, genre, any_voice_fallback, scenes

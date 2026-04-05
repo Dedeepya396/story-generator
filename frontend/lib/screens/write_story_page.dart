@@ -778,7 +778,9 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
           'title': data['title'] ?? 'Untitled',
           'genre': data['genre'] ?? 'General',
           'voice_fallback': data['voice_fallback'] ?? false,
-          'subtitle_url': data['subtitle_url'] ?? data['subtitleUrl'] ?? null,
+          'subtitle_url': data['subtitle_url'] ?? data['subtitleUrl'],
+          'scenes': data['scenes'],
+          'image_urls': data['image_urls'],
         };
       } else {
         print('Error response: ${response.body}');
@@ -1376,6 +1378,12 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                                   storyTitle: title,
                                   genre: genre,
                                   subtitleUrl: subtitleUrl,
+                                  scenes: videoResults['scenes'],
+                                  imageUrls: videoResults['image_urls'] != null 
+                                      ? List<String>.from(videoResults['image_urls']) 
+                                      : null,
+                                  displayFlag: _isPublic,
+                                  coverUrl: coverUrl,
                                 ),
                               ),
                             );
