@@ -1,0 +1,35 @@
+fastapi
+uvicorn
+python-dotenv
+PyJWT
+email-validator
+
+# Database
+motor
+
+# Media / audio / video
+moviepy==1.0.3
+gTTS
+soundfile
+librosa
+
+# ML / NLP
+torch
+torchaudio
+transformers==4.38.2
+tokenizers==0.15.2
+huggingface_hub==0.36.2
+accelerate
+sentencepiece
+sacremoses
+nltk
+indictranstoolkit
+
+# Utilities
+numpy
+protobuf
+
+# APIs / integrations
+cloudinary
+groq
+mistralai
