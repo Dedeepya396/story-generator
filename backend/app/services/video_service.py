@@ -243,15 +243,19 @@ def generate_story_video(
             audio_path = os.path.join("output", "videos", f"tmp_audio_{i}.mp3")
             os.makedirs(os.path.dirname(audio_path), exist_ok=True)
             
+            scene_gender = scene.get("speaker_gender", gender).lower()
+            if scene_gender not in ["male", "female"]:
+                scene_gender = gender
+
             # Check if we need translation + Indic TTS
             if language.lower() != "english":
                 # Use AI4Bharat pipeline (Translation + VITS TTS)
-                print(f"Scene {i}: Translating to {language}...")
+                print(f"Scene {i}: Translating to {language} with gender {scene_gender}...")
                 translated_text, indic_audio_path, voice_fallback = generate_multilingual_audio(
                     english_text=scene["text"],
                     target_language=language,
                     output_path=audio_path,
-                    gender=gender
+                    gender=scene_gender
                 )
                 if voice_fallback:
                     any_voice_fallback = True
@@ -262,9 +266,14 @@ def generate_story_video(
                 audio_path = indic_audio_path  # Use the WAV file
             else:
                 # Use gTTS for English
-                print(f"Scene {i}: Generating English audio...")
+                print(f"Scene {i}: Generating English audio mapping speaker to dialect...")
                 mp3_path = audio_path.replace('.wav', '.mp3')
-                tts = gTTS(scene["text"])
+                
+                speaker_name = scene.get("speaker", "narrator")
+                tld_options = ['com', 'co.uk', 'com.au', 'co.in', 'ca', 'ie']
+                tld = tld_options[hash(speaker_name) % len(tld_options)] if speaker_name != "narrator" else 'us'
+
+                tts = gTTS(scene["text"], tld=tld)
                 tts.save(mp3_path)
                 temp_files.append(mp3_path)
                 audio_path = mp3_path

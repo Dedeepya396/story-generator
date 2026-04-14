@@ -21,13 +21,16 @@ def extract_characters(story):
     prompt = f"""
     Extract ALL recurring characters from the story.
 
-    For each character define a strong visual DNA.
+    For each character define a strong visual DNA and their gender.
 
     Return JSON:
 
     {{
       "characters": {{
-         "name":"visual description"
+         "name": {{
+             "visual_dna": "visual description",
+             "gender": "male or female or neutral"
+         }}
       }}
     }}
 
@@ -53,13 +56,13 @@ def plan_scenes(story, characters):
     )
 
     prompt = f"""
-    You are a storyboard artist.
+    You are a storyboard artist and dialogue adapter.
 
     IMPORTANT RULES:
-    - DO NOT rewrite or expand the story
-    - DO NOT add new sentences
-    - ONLY split the existing story into scenes
-    - Each scene narration must come DIRECTLY from the story
+    1. PRESERVE NARRATION: If the story has narrative/descriptive sentences (e.g., setting the scene, describing actions), you MUST include them as their own scenes with the speaker set to "narrator". Do NOT skip ANY sentences from the original story.
+    2. CONVERT TO DIALOGUE: If a part is written in passive voice or indirect speech, rewrite it into active voice dialogue spoken by the character.
+    3. DO NOT ALTER CONTENT: Do not add new information or remove important details. Keep the story exactly the same length and flow. Ensure smooth transitions between narration and dialogue.
+    4. NO SPEAKER LABELS IN TEXT: The "text" field MUST contain ONLY the exact words to be spoken aloud. Do NOT prepend the character's name to the text (e.g., output "Let's go!", NEVER output "Rohan: Let's go!").
 
     Characters:
 
@@ -71,7 +74,9 @@ def plan_scenes(story, characters):
       "style":"Pixar cinematic 3D animation",
       "scenes":[
         {{
-          "text":"exact sentence from the story",
+          "text":"The raw words to be spoken aloud. NO speaker names or colons in this field.",
+          "speaker": "Name of the character speaking, or 'narrator'",
+          "speaker_gender": "male, female, or narrator",
           "environment":"short description of environment",
           "characters_present":[]
         }}
@@ -112,11 +117,14 @@ def generate_scene_image(plan, scene, i, seed):
 
     char_text = ", ".join(flattened) if flattened else ""
 
+    speaker_info = f"Active Speaker: {scene.get('speaker', 'narrator')} is currently speaking or in focus." if scene.get('speaker', 'narrator') != 'narrator' else "This is a general narration scene."
+
     prompt = f"""
     {plan["style"]}
 
     IMPORTANT:
     The characters must look EXACTLY the same in every scene.
+    {speaker_info}
 
     Character design:
     {char_text}
@@ -177,11 +185,14 @@ def generate_scene_images(plan):
 
         char_text = ", ".join(flattened) if flattened else ""
 
+        speaker_info = f"Active Speaker: {scene.get('speaker', 'narrator')} is currently speaking or in focus." if scene.get('speaker', 'narrator') != 'narrator' else "This is a general narration scene."
+
         prompt = f"""
         {plan["style"]}
 
         IMPORTANT:
         The characters must look EXACTLY the same in every scene.
+        {speaker_info}
 
         Character design:
         {char_text}
