@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 import 'navbar.dart';
 import '../services/story_serviceFront.dart';
+import 'quiz_dialog.dart';
 class Subtitle {
   final Duration start;
   final Duration end;
@@ -919,6 +920,58 @@ Future<void> _loadSubtitles() async {
                                                   child: Text(l[0].toUpperCase() + l.substring(1)),
                                                 )).toList(),
                                               ),
+                                              const SizedBox(width: 8),
+
+// ========================================================
+// TAKE QUIZ
+// ========================================================
+
+if (widget.storyText != null &&
+    widget.storyText!.trim().isNotEmpty)
+
+  ElevatedButton.icon(
+
+    onPressed: () {
+
+      showQuizDialog(
+        context,
+        widget.storyText!,
+      );
+
+    },
+
+    icon: const Icon(
+      Icons.quiz_outlined,
+      size: 20,
+    ),
+
+    label: const Text(
+      "Take Quiz",
+    ),
+
+    style: ElevatedButton.styleFrom(
+
+      backgroundColor:
+          const Color(0xFFFB6F92),
+
+      foregroundColor:
+          Colors.white,
+
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 10,
+      ),
+
+      shape:
+          RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(10),
+      ),
+
+      elevation: 2,
+    ),
+  ),
                                       ],
                                     ),
                                   ],

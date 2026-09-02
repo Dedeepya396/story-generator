@@ -1,7 +1,7 @@
 import re, json, difflib, requests, random, os, time, shutil
 from typing import Tuple, Optional, List, Dict
 from pydantic import BaseModel
-from mistralai import Mistral
+from mistralai.client import Mistral
 
 from dotenv import load_dotenv
 from gtts import gTTS

@@ -12,12 +12,17 @@ class Profile(BaseModel):
     socialLinks: Optional[SocialLinks] = None
 
 class UserSignup(BaseModel):
-    fullName: str
-    email: EmailStr
-    password: str = Field(min_length=6)
+    fullName: Optional[str] = Field(None, alias="name")
+    email: str
+    password: str = Field(..., min_length=1)
     phone: Optional[str] = None
-    role: Literal["teacher", "student"]
+    role: Optional[str] = "student"
     profile: Optional[Profile] = None
+
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+
 
 class UserLogin(BaseModel):
     email: EmailStr

@@ -1,7 +1,7 @@
 import os
 import json
 import os
-from mistralai import Mistral
+from mistralai.client import Mistral
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 from PIL import Image
