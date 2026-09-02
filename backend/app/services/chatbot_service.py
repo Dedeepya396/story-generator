@@ -30,7 +30,7 @@ async def generate_story(prompt: str = None, genre: str = None):
             max_tokens = 300
 
     chat_response = client.chat.complete(
-        model="mistral-small-latest",
+        model="mistral-large-latest",
         messages=[
             {
                 "role": "system",
