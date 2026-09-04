@@ -501,66 +501,9 @@ Future<void> _loadSubtitles() async {
   }
 
   void _showStoryTextModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        decoration: const BoxDecoration(
-          color: Color(0xFFFFF7FB),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.storyTitle ?? 'Story',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF49243E),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Color(0xFF49243E)),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(color: Color(0xFFFFCFE2), thickness: 1),
-            // Story text content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  widget.storyText ?? 'No story text available',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF49243E),
-                    height: 1.6,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    setState(() {
+      _showStoryModal = !_showStoryModal;
+    });
   }
 
   @override
@@ -720,69 +663,199 @@ Future<void> _loadSubtitles() async {
                           return Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: const BorderRadius.all(Radius.circular(28)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFFB6F92).withOpacity(0.4),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxHeight: maxVideoHeight,
-                                    maxWidth: constraints.maxWidth * 0.95,
-                                  ),
-                                  child: AspectRatio(
-                                    aspectRatio: controller.value.aspectRatio,
-                                    child: ClipRRect(
-                                      borderRadius:
-                                          const BorderRadius.all(Radius.circular(28)),
-                                      child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black,
-                                        ),
-                                        child: Stack(
-                                          alignment: Alignment.bottomCenter,
-                                          children: [
-                                            VideoPlayer(controller),
-                                            if (_showSubtitles && _currentSubtitle.isNotEmpty)
-                                              Positioned(
-                                                bottom: 20,
-                                                left: 20,
-                                                right: 20,
+                              SizedBox(
+                                height: maxVideoHeight,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      flex: _showStoryModal ? 6 : 10,
+                                      child: Center(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: const BorderRadius.all(
+                                                Radius.circular(28)),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFFFB6F92)
+                                                    .withOpacity(0.4),
+                                                blurRadius: 20,
+                                                offset: const Offset(0, 10),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ConstrainedBox(
+                                            constraints: BoxConstraints(
+                                              maxHeight: maxVideoHeight,
+                                              maxWidth: _showStoryModal
+                                                  ? constraints.maxWidth * 0.60
+                                                  : constraints.maxWidth * 0.95,
+                                            ),
+                                            child: AspectRatio(
+                                              aspectRatio: controller.value.aspectRatio,
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                        Radius.circular(28)),
                                                 child: Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 14,
-                                                    vertical: 8,
+                                                  decoration: const BoxDecoration(
+                                                    color: Colors.black,
                                                   ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.black87,
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    border: Border.all(
-                                                      color: const Color(0xFFFB6F92),
-                                                      width: 2,
+                                                  child: Stack(
+                                                    alignment:
+                                                        Alignment.bottomCenter,
+                                                    children: [
+                                                      VideoPlayer(controller),
+                                                      if (_showSubtitles &&
+                                                          _currentSubtitle.isNotEmpty)
+                                                        Positioned(
+                                                          bottom: 20,
+                                                          left: 20,
+                                                          right: 20,
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 14,
+                                                              vertical: 8,
+                                                            ),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Colors.black87,
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(12),
+                                                              border: Border.all(
+                                                                color: const Color(
+                                                                    0xFFFB6F92),
+                                                                width: 2,
+                                                              ),
+                                                            ),
+                                                            child: Text(
+                                                              _currentSubtitle,
+                                                              textAlign:
+                                                                  TextAlign.center,
+                                                              style:
+                                                                  const TextStyle(
+                                                                color:
+                                                                    Colors.white,
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight.w600,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (_showStoryModal &&
+                                        widget.storyText != null &&
+                                        widget.storyText!.isNotEmpty) ...[
+                                      const SizedBox(width: 20),
+                                      Expanded(
+                                        flex: 4,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFFF7FB),
+                                            borderRadius:
+                                                BorderRadius.circular(24),
+                                            border: Border.all(
+                                              color:
+                                                  const Color(0xFFFFCFE2),
+                                              width: 1.5,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFFFB6F92)
+                                                    .withOpacity(0.18),
+                                                blurRadius: 15,
+                                                offset: const Offset(0, 5),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                  20,
+                                                  18,
+                                                  12,
+                                                  12,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.description,
+                                                      color:
+                                                          Color(0xFFFB6F92),
                                                     ),
-                                                  ),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(
+                                                      child: Text(
+                                                        widget.storyTitle ??
+                                                            'Story',
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style:
+                                                            const TextStyle(
+                                                          fontSize: 19,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          color:
+                                                              Color(0xFF49243E),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    IconButton(
+                                                      onPressed:
+                                                          _showStoryTextModal,
+                                                      icon: const Icon(
+                                                        Icons.close,
+                                                        color:
+                                                            Color(0xFF49243E),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const Divider(
+                                                color: Color(0xFFFFCFE2),
+                                                thickness: 1,
+                                                height: 1,
+                                              ),
+                                              Expanded(
+                                                child: SingleChildScrollView(
+                                                  padding:
+                                                      const EdgeInsets.all(20),
                                                   child: Text(
-                                                    _currentSubtitle,
-                                                    textAlign: TextAlign.center,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
+                                                    widget.storyText!,
+                                                    style:
+                                                        const TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
+                                                      color:
+                                                          Color(0xFF49243E),
+                                                      height: 1.6,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ),
+                                    ],
+                                  ],
                                 ),
                               ),
                               const SizedBox(height: 16),
