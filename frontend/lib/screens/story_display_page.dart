@@ -111,6 +111,9 @@ bool _subtitlesAvailable = false;
   // Re-voicing state
   bool _revoicing = false;
   String _selectedLanguage = "english";
+
+  // Quiz auto-popup guard: only show once per video completion
+  bool _quizShown = false;
   final List<String> _languages = ["english", "hindi", "telugu", "tamil", "malayalam", "kannada", "bengali", "gujarati", "marathi", "punjabi"];
 
   // Story text variables
@@ -340,6 +343,25 @@ Future<void> _loadSubtitles() async {
       _isPlaying = value.isPlaying;
     });
     _updateSubtitle(value.position);
+
+    // Auto-show quiz when video finishes (if story text is available)
+    if (!_quizShown &&
+        !value.isPlaying &&
+        value.duration.inSeconds > 0 &&
+        value.position.inSeconds >= value.duration.inSeconds &&
+        widget.storyText != null &&
+        widget.storyText!.trim().isNotEmpty) {
+      _quizShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          showQuizDialog(
+            context,
+            widget.storyText!,
+            language: _selectedLanguage,
+          );
+        }
+      });
+    }
   }
 
 
