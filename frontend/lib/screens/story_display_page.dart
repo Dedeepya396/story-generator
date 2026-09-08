@@ -552,6 +552,7 @@ bool _subtitlesAvailable = false;
             context,
             widget.storyText!,
             language: _selectedLanguage,
+            videoDurationSeconds: _duration?.inSeconds,
           );
         }
       });
@@ -1158,6 +1159,7 @@ if (widget.storyText != null &&
         context,
         widget.storyText!,
         language: _selectedLanguage,
+        videoDurationSeconds: _duration?.inSeconds,
       );
 
     },

@@ -1060,6 +1060,7 @@ Future<void> showQuizDialog(
   BuildContext context,
   String story, {
   String language = 'english',
+  int? videoDurationSeconds,
 }) async {
   if (story.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1080,6 +1081,7 @@ Future<void> showQuizDialog(
       return QuizDialog(
         story: story,
         language: language,
+        videoDurationSeconds: videoDurationSeconds,
       );
     },
   );
@@ -1092,11 +1094,13 @@ Future<void> showQuizDialog(
 class QuizDialog extends StatefulWidget {
   final String story;
   final String language;
+  final int? videoDurationSeconds;
 
   const QuizDialog({
     super.key,
     required this.story,
     this.language = 'english',
+    this.videoDurationSeconds,
   });
 
   @override
@@ -1190,6 +1194,8 @@ class _QuizDialogState extends State<QuizDialog> {
         body: jsonEncode({
           "story": widget.story,
           "language": widget.language,
+          if (widget.videoDurationSeconds != null)
+            "video_duration": widget.videoDurationSeconds,
         }),
       );
 
@@ -1204,9 +1210,9 @@ class _QuizDialogState extends State<QuizDialog> {
       final List generatedQuestions =
           data["questions"];
 
-      if (generatedQuestions.length != 5) {
+      if (generatedQuestions.isEmpty) {
         throw Exception(
-          "Expected 5 questions",
+          "Failed to load quiz questions",
         );
       }
 
@@ -1421,11 +1427,13 @@ class _QuizDialogState extends State<QuizDialog> {
   // ==========================================================
 
   String getScoreMessage() {
-    if (score == 5) {
+    if (questions.isEmpty) return "Keep practicing! 💪";
+    final ratio = score / questions.length;
+    if (ratio == 1.0) {
       return "Excellent! 🌟";
     }
 
-    if (score >= 3) {
+    if (ratio >= 0.6) {
       return "Good job! 👍";
     }
 
