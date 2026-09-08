@@ -36,7 +36,8 @@ def extract_characters(story):
     """
 
     response = client.chat.complete(
-        model="mistral-large-latest",
+        # model="mistral-small-latest",
+        model="ministral-8b-latest",
         messages=[{"role":"user","content":prompt}],
         response_format={"type":"json_object"}
     )
@@ -83,7 +84,8 @@ def plan_scenes(story, characters):
     """
 
     response = client.chat.complete(
-        model="mistral-large-latest",
+        # model="mistral-small-latest",
+        model="ministral-8b-latest",
         messages=[{"role":"user","content":prompt}],
         response_format={"type":"json_object"}
     )

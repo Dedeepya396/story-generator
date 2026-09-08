@@ -88,7 +88,8 @@ Story:
 """
     try:
         resp = client.chat.complete(
-            model="mistral-large-latest",
+            # model="mistral-small-latest",
+            model="ministral-8b-latest",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
         )
