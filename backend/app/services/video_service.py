@@ -259,6 +259,9 @@ def generate_story_video(
                 
                 print(f"  Original: {scene['text']}")
                 print(f"  Translated: {translated_text}")
+                scene["original_text"] = scene.get("original_text", scene["text"])
+                scene["translated_text"] = translated_text
+                scene["text"] = translated_text
                 temp_files.append(indic_audio_path)
                 audio_path = indic_audio_path  # Use the WAV file
             else:

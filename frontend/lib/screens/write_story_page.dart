@@ -793,7 +793,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
   }
 
     Future<Map<String, dynamic>> _submitStory(
-      String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre, String? subtitleUrl) async {
+      String? videoUrl, String? coverUrl, String? storyTitle, String? storyGenre, String? subtitleUrl, {List<dynamic>? scenes}) async {
     final storyText = _storyController.text.trim();
 
     if (storyText.isEmpty) {
@@ -818,6 +818,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
       videoUrl: videoUrl,
       coverUrl: coverUrl,
       subtitleUrl: subtitleUrl,
+      scenes: scenes,
     );
 
     return res;
@@ -1365,7 +1366,8 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                           final subtitleUrl = videoResults['subtitle_url'];
 
                           final res = await _submitStory(
-                              videoUrl, coverUrl, title, genre, subtitleUrl);
+                              videoUrl, coverUrl, title, genre, subtitleUrl,
+                              scenes: videoResults['scenes']);
 
                           if (res['success'] == true) {
                             Navigator.push(

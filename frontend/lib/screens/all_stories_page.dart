@@ -45,6 +45,9 @@ class _AllStoriesPageState extends State<AllStoriesPage> {
                 storyTitle: title,
                 subtitleUrl: s['subtitleUrl'] ?? s['subtitle_url'],
                 language: s['language'] != null ? s['language'].toString() : null,
+                scenes: s['scenes'] != null ? List<Map<String, dynamic>>.from(
+                  (s['scenes'] as List).map((e) => Map<String, dynamic>.from(e as Map))
+                ) : null,
               ),
             ),
           );

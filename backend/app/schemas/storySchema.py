@@ -10,6 +10,8 @@ class StoryCreate(BaseModel):
     genre: Optional[str] = None
     videoUrl: Optional[str] = None
     coverUrl: Optional[str] = None
+    subtitleUrl: Optional[str] = None
+    scenes: Optional[list] = None
     displayFlag: Optional[bool] = True
 
 class StoryOut(BaseModel):
@@ -22,6 +24,8 @@ class StoryOut(BaseModel):
     genre: Optional[str] = None
     videoUrl: Optional[str] = None
     coverUrl: Optional[str] = None
+    subtitleUrl: Optional[str] = None
+    scenes: Optional[list] = None
     displayFlag: Optional[bool] = True
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None

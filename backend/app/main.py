@@ -7,6 +7,8 @@ from app.routes.video import router as video_generate_router
 from app.routes.chatbotRoute import router as chatbot_router
 # from services.quiz_service import generate_quiz_from_story
 from app.routes.quizRoute import router as generate_quiz
+from app.routes.subtitleRoute import router as subtitle_router
+
 app = FastAPI(title="Story Video Generator")
 app.include_router(video_router)
 app.include_router(users)
@@ -15,6 +17,7 @@ app.include_router(story_router)
 app.include_router(video_generate_router) 
 app.include_router(chatbot_router)
 app.include_router(generate_quiz)
+app.include_router(subtitle_router)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse

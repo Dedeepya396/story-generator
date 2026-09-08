@@ -19,8 +19,8 @@ class Subtitle {
 }
 
 List<Subtitle> parseSrt(String srt) {
-  // Generic VTT/SRT parser: finds timestamp lines and collects following text until blank line
-  final regex = RegExp(r"(\d{2}:\d{2}:\d{2}[\.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[\.,]\d{3})");
+  // Generic VTT/SRT parser: supports HH:MM:SS.mmm or MM:SS.mmm
+  final regex = RegExp(r"((?:\d{2}:)?\d{2}:\d{2}[\.,]\d{3})\s*-->\s*((?:\d{2}:)?\d{2}:\d{2}[\.,]\d{3})");
   List<Subtitle> subs = [];
   final lines = srt.replaceAll('\r', '').split('\n');
   for (int i = 0; i < lines.length; i++) {
@@ -33,11 +33,23 @@ List<Subtitle> parseSrt(String srt) {
       Duration parseTime(String t) {
         t = t.replaceAll(',', '.');
         final parts = t.split(':');
-        final hours = int.parse(parts[0]);
-        final minutes = int.parse(parts[1]);
-        final secParts = parts[2].split('.');
-        final seconds = int.parse(secParts[0]);
-        final ms = int.parse((secParts.length > 1 ? secParts[1] : '0').padRight(3, '0'));
+        int hours = 0;
+        int minutes = 0;
+        int seconds = 0;
+        int ms = 0;
+
+        if (parts.length == 3) {
+          hours = int.parse(parts[0]);
+          minutes = int.parse(parts[1]);
+          final secParts = parts[2].split('.');
+          seconds = int.parse(secParts[0]);
+          ms = int.parse((secParts.length > 1 ? secParts[1] : '0').padRight(3, '0').substring(0, 3));
+        } else if (parts.length == 2) {
+          minutes = int.parse(parts[0]);
+          final secParts = parts[1].split('.');
+          seconds = int.parse(secParts[0]);
+          ms = int.parse((secParts.length > 1 ? secParts[1] : '0').padRight(3, '0').substring(0, 3));
+        }
         return Duration(hours: hours, minutes: minutes, seconds: seconds, milliseconds: ms);
       }
 
@@ -204,62 +216,244 @@ bool _subtitlesAvailable = false;
       });
     }
   }
-Future<void> _loadSubtitles() async {
-  try {
-    setState(() {
-      _subtitlesLoading = true;
-      _subtitlesAvailable = false;
-    });
+  List<Subtitle> _generateFallbackSubtitles() {
+    final totalDuration = _duration ?? const Duration(seconds: 15);
+    final totalMs = totalDuration.inMilliseconds;
+    if (totalMs <= 0) return [];
 
-    String subtitleLocation;
-    if (_currentSubtitleUrl != null && _currentSubtitleUrl!.isNotEmpty) {
-      subtitleLocation = _currentSubtitleUrl!;
-    } else {
-      // Derive .vtt from video URL; remove query params if present
-      try {
-        final vuri = Uri.parse(_currentVideoUrl);
-        String path = vuri.path;
-        if (path.toLowerCase().endsWith('.mp4')) {
-          path = path.substring(0, path.length - 4) + '.vtt';
-        } else {
-          path = path + '.vtt';
+    List<String> segments = [];
+
+    // 1. Try scenes if available
+    if (widget.scenes != null && widget.scenes!.isNotEmpty) {
+      for (var scene in widget.scenes!) {
+        final text = (scene['translated_text'] ?? scene['text'] ?? '').toString().trim();
+        if (text.isNotEmpty) {
+          segments.add(text);
         }
-        final derived = vuri.replace(path: path, queryParameters: null);
-        subtitleLocation = derived.toString();
-      } catch (e) {
-        subtitleLocation = _currentVideoUrl.replaceAll(RegExp(r"(\?.*)?$"), '')
-            .replaceAll('.mp4', '.vtt');
       }
     }
 
-    print('Attempting to load subtitles from: $subtitleLocation');
-    final response = await http.get(Uri.parse(subtitleLocation));
+    // 2. Otherwise split storyText by punctuation
+    if (segments.isEmpty && widget.storyText != null && widget.storyText!.trim().isNotEmpty) {
+      final raw = widget.storyText!.trim();
+      final splitRegex = RegExp(r'(?<=[.!?\n])\s+');
+      final parts = raw.split(splitRegex);
+      for (var p in parts) {
+        final cleaned = p.trim();
+        if (cleaned.isNotEmpty) {
+          segments.add(cleaned);
+        }
+      }
+    }
 
-    if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-      final decodedBody = utf8.decode(response.bodyBytes);
-      final parsed = parseSrt(decodedBody);
+    if (segments.isEmpty) return [];
+
+    final totalChars = segments.fold<int>(0, (sum, item) => sum + item.length);
+    if (totalChars == 0) return [];
+
+    List<Subtitle> generated = [];
+    int currentStartMs = 0;
+
+    for (int i = 0; i < segments.length; i++) {
+      final segText = segments[i];
+      final proportion = segText.length / totalChars;
+      int segMs = (totalMs * proportion).round();
+      if (segMs < 1000) segMs = 1000;
+
+      int endMs = currentStartMs + segMs;
+      if (i == segments.length - 1 || endMs > totalMs) {
+        endMs = totalMs;
+      }
+
+      generated.add(Subtitle(
+        start: Duration(milliseconds: currentStartMs),
+        end: Duration(milliseconds: endMs),
+        text: segText,
+      ));
+
+      currentStartMs = endMs;
+      if (currentStartMs >= totalMs) break;
+    }
+
+    return generated;
+  }
+
+  bool _isErrorText(String text) {
+    if (text.isEmpty) return false;
+    final low = text.toLowerCase();
+    return low.contains('error 500') ||
+        low.contains('server error') ||
+        low.contains("that's an error") ||
+        low.contains('please try again later') ||
+        low.contains("that's all we know") ||
+        low.contains('500 (server error)') ||
+        low.contains('http 500');
+  }
+
+  Future<List<Subtitle>> _translateSubtitlesIfNeeded(List<Subtitle> subs) async {
+    final targetLang = _selectedLanguage.isNotEmpty ? _selectedLanguage : (widget.language ?? 'english');
+    if (targetLang.toLowerCase() == 'english' || subs.isEmpty) {
+      return subs;
+    }
+
+    final hasEnglish = RegExp(r'[a-zA-Z]{3,}');
+    bool needsTranslation = false;
+    for (var s in subs) {
+      if (hasEnglish.hasMatch(s.text)) {
+        needsTranslation = true;
+        break;
+      }
+    }
+
+    if (!needsTranslation) return subs;
+
+    List<Subtitle> translatedSubs = [];
+    for (var s in subs) {
+      if (hasEnglish.hasMatch(s.text)) {
+        try {
+          final resp = await http.post(
+            Uri.parse('http://localhost:8000/subtitles/translate'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'text': s.text,
+              'target_language': targetLang,
+            }),
+          );
+          if (resp.statusCode == 200) {
+            final data = jsonDecode(resp.body);
+            final tText = (data['translated_text'] ?? '').toString();
+            if (tText.isNotEmpty && !_isErrorText(tText)) {
+              translatedSubs.add(Subtitle(start: s.start, end: s.end, text: tText));
+              continue;
+            }
+          }
+        } catch (e) {
+          print('Subtitle inline translation error: $e');
+        }
+      }
+      translatedSubs.add(s);
+    }
+    return translatedSubs;
+  }
+
+  Future<void> _loadSubtitles() async {
+    try {
       setState(() {
-        _subtitles = parsed;
-        _subtitlesAvailable = _subtitles.isNotEmpty;
+        _subtitlesLoading = true;
+        _subtitlesAvailable = false;
       });
+
+      final targetLang = _selectedLanguage.isNotEmpty ? _selectedLanguage : (widget.language ?? 'english');
+
+      List<Subtitle> loaded = [];
+      bool alreadyTranslated = false;
+
+      // ── Step 1: Try the pre-translated VTT file from Cloudinary ──────────
+      String? subtitleLocation = _currentSubtitleUrl;
+      if (subtitleLocation == null || subtitleLocation.isEmpty) {
+        subtitleLocation = widget.subtitleUrl;
+      }
+
+      if (subtitleLocation != null && subtitleLocation.isNotEmpty) {
+        try {
+          print('[Subtitles] Fetching VTT from: $subtitleLocation');
+          final proxyUrl = Uri.parse(
+            'http://localhost:8000/subtitles/fetch?url=${Uri.encodeComponent(subtitleLocation)}'
+          );
+          final response = await http.get(proxyUrl);
+          if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+            final decodedBody = utf8.decode(response.bodyBytes);
+            loaded = parseSrt(decodedBody);
+            if (loaded.isNotEmpty) {
+              final sampleText = loaded.first.text;
+              final hasNonAscii = RegExp(r'[^\x00-\x7F]').hasMatch(sampleText);
+              final hasEnglishWords = RegExp(r'[a-zA-Z]{3,}').hasMatch(sampleText);
+              alreadyTranslated = hasNonAscii || !hasEnglishWords;
+              print('[Subtitles] Loaded ${loaded.length} cues from VTT. alreadyTranslated=$alreadyTranslated sample="$sampleText"');
+            }
+          }
+        } catch (e) {
+          print('[Subtitles] VTT fetch error: $e');
+        }
+      }
+
+      // ── Step 2: Fallback — build from pre-translated scenes ──────────────
+      if (loaded.isEmpty && widget.scenes != null && widget.scenes!.isNotEmpty) {
+        print('[Subtitles] Building from pre-translated scenes...');
+        loaded = _generateFallbackSubtitles();
+        // Check if scene text is already in target language (non-Latin script check)
+        if (loaded.isNotEmpty) {
+          final sample = loaded.first.text;
+          final hasOnlyLatin = !RegExp(r'[^\x00-\x7F]').hasMatch(sample);
+          alreadyTranslated = !hasOnlyLatin; // Non-ASCII chars = already translated
+          print('[Subtitles] From scenes: alreadyTranslated=$alreadyTranslated sample="$sample"');
+        }
+      }
+
+      // ── Step 3: Absolute fallback — split storyText ───────────────────────
+      if (loaded.isEmpty) {
+        print('[Subtitles] No VTT or scenes — building from storyText...');
+        loaded = _generateFallbackSubtitles();
+      }
+
+      // ── Step 4: Fast Batch Translate if still in English and target is non-English ──
+      if (loaded.isNotEmpty && !alreadyTranslated && targetLang.toLowerCase() != 'english') {
+        print('[Subtitles] Fast batch translating ${loaded.length} cues to $targetLang...');
+        try {
+          final textsToTranslate = loaded.map((s) => s.text).toList();
+          final resp = await http.post(
+            Uri.parse('http://localhost:8000/subtitles/translate_batch'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'texts': textsToTranslate,
+              'target_language': targetLang,
+            }),
+          );
+
+          if (resp.statusCode == 200) {
+            final data = jsonDecode(resp.body);
+            final List<dynamic> translatedTexts = data['translated_texts'] ?? [];
+            if (translatedTexts.length == loaded.length) {
+              List<Subtitle> batchTranslatedSubs = [];
+              for (int i = 0; i < loaded.length; i++) {
+                final raw = translatedTexts[i].toString();
+                final clean = (raw.isNotEmpty && !_isErrorText(raw)) ? raw : loaded[i].text;
+                batchTranslatedSubs.add(Subtitle(start: loaded[i].start, end: loaded[i].end, text: clean));
+              }
+              loaded = batchTranslatedSubs;
+              print('[Subtitles] Batch translation completed instantly!');
+            }
+          }
+        } catch (e) {
+          print('[Subtitles] Batch translation error: $e');
+        }
+      }
+
+      setState(() {
+        _subtitles = loaded;
+        _subtitlesAvailable = _subtitles.isNotEmpty;
+        if (_subtitlesAvailable) {
+          _showSubtitles = true;
+        }
+      });
+
       if (_subtitlesAvailable) {
+        _updateSubtitle(_position);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Subtitles loaded')),
+            const SnackBar(content: Text('Captions / Subtitles loaded')),
           );
         });
       }
-    } else {
-      print('Subtitle fetch returned ${response.statusCode}');
+    } catch (e) {
+      print('[Subtitles] Load error: $e');
+    } finally {
+      setState(() {
+        _subtitlesLoading = false;
+      });
     }
-  } catch (e) {
-    print("Subtitle load error: $e");
-  } finally {
-    setState(() {
-      _subtitlesLoading = false;
-    });
   }
-}
+
   @override
   void initState() {
     super.initState();

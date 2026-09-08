@@ -14,6 +14,7 @@ class StoryService {
     String? videoUrl,
     String? coverUrl,
     String? subtitleUrl,
+    List<dynamic>? scenes,
     required bool displayFlag,
   }) async {
     final user = AuthService.user;
@@ -36,8 +37,10 @@ class StoryService {
       'videoUrl': videoUrl,
       'coverUrl': coverUrl,
       'subtitleUrl': subtitleUrl,
+      'scenes': scenes,
       'displayFlag': displayFlag,
     };
+
 
     try {
       // use AuthService.baseUrl if available, else fallback
