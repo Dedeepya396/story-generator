@@ -17,6 +17,7 @@ async def generate_quiz(request: Request):
         data = await request.json()
 
         story = data.get("story")
+        language = data.get("language") or data.get("output_language") or "english"
 
         if not story:
             raise HTTPException(
@@ -24,7 +25,7 @@ async def generate_quiz(request: Request):
                 detail="Story is required"
             )
 
-        quiz = generate_quiz_from_story(story)
+        quiz = generate_quiz_from_story(story, language=language)
 
         return quiz
 

@@ -1384,6 +1384,7 @@ class _WriteStoryPageState extends State<WriteStoryPage> {
                                       : null,
                                   displayFlag: _isPublic,
                                   coverUrl: coverUrl,
+                                  language: _selectedOutputLanguage,
                                 ),
                               ),
                             );

@@ -1058,8 +1058,9 @@ import 'package:http/http.dart' as http;
 
 Future<void> showQuizDialog(
   BuildContext context,
-  String story,
-) async {
+  String story, {
+  String language = 'english',
+}) async {
   if (story.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -1078,6 +1079,7 @@ Future<void> showQuizDialog(
     builder: (context) {
       return QuizDialog(
         story: story,
+        language: language,
       );
     },
   );
@@ -1089,10 +1091,12 @@ Future<void> showQuizDialog(
 
 class QuizDialog extends StatefulWidget {
   final String story;
+  final String language;
 
   const QuizDialog({
     super.key,
     required this.story,
+    this.language = 'english',
   });
 
   @override
@@ -1185,6 +1189,7 @@ class _QuizDialogState extends State<QuizDialog> {
         },
         body: jsonEncode({
           "story": widget.story,
+          "language": widget.language,
         }),
       );
 
@@ -1766,6 +1771,51 @@ class _QuizDialogState extends State<QuizDialog> {
 
             const SizedBox(
               height: 25,
+            ),
+
+            // =================================================
+            // QUESTION TYPE BADGE
+            // =================================================
+
+            Builder(
+              builder: (context) {
+                final String qType = (question["type"] ?? "mcq").toString();
+                String badgeLabel = "Multiple Choice 💡";
+                Color badgeBg = const Color(0xFFF3E5F5);
+                Color badgeTextColor = const Color(0xFF7B1FA2);
+
+                if (qType == "true_false") {
+                  badgeLabel = "True or False 📝";
+                  badgeBg = const Color(0xFFE0F7FA);
+                  badgeTextColor = const Color(0xFF00838F);
+                } else if (qType == "fill_blank") {
+                  badgeLabel = "Fill in the Blank ✏️";
+                  badgeBg = const Color(0xFFFFF8E1);
+                  badgeTextColor = const Color(0xFFF57F17);
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      badgeLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: badgeTextColor,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
 
             // =================================================

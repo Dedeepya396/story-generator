@@ -69,6 +69,7 @@ class StoryDisplayPage extends StatefulWidget {
   final List<String>? imageUrls;
   final bool displayFlag;
   final String? coverUrl;
+  final String? language;
 
   const StoryDisplayPage({
     super.key,
@@ -82,6 +83,7 @@ class StoryDisplayPage extends StatefulWidget {
     this.imageUrls,
     this.displayFlag = true,
     this.coverUrl,
+    this.language,
   });
   @override
   State<StoryDisplayPage> createState() => _StoryDisplayPageState();
@@ -260,6 +262,9 @@ Future<void> _loadSubtitles() async {
     super.initState();
     _currentVideoUrl = widget.videoUrl;
     _currentSubtitleUrl = widget.subtitleUrl;
+    if (widget.language != null && widget.language!.isNotEmpty) {
+      _selectedLanguage = widget.language!;
+    }
 
     _controller = VideoPlayerController.network(_currentVideoUrl)
       ..addListener(_videoListener)
@@ -936,6 +941,7 @@ if (widget.storyText != null &&
       showQuizDialog(
         context,
         widget.storyText!,
+        language: _selectedLanguage,
       );
 
     },

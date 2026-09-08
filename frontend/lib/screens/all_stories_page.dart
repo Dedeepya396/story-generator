@@ -44,6 +44,7 @@ class _AllStoriesPageState extends State<AllStoriesPage> {
                 storyText: storyText.isNotEmpty ? storyText : null,
                 storyTitle: title,
                 subtitleUrl: s['subtitleUrl'] ?? s['subtitle_url'],
+                language: s['language'] != null ? s['language'].toString() : null,
               ),
             ),
           );

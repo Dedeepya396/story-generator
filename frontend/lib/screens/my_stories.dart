@@ -232,6 +232,7 @@ class _MyStoriesPageState extends State<MyStoriesPage> {
                     storyTitle: title,
                     genre: (s['genre'] ?? '').toString(),
                     subtitleUrl: s['subtitleUrl'] ?? s['subtitle_url'],
+                    language: s['language'] != null ? s['language'].toString() : null,
                   ),
             ),
           );
