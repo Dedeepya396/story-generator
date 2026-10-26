@@ -1,5 +1,6 @@
 import os
 import json
+import os
 from mistralai.client import Mistral
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
@@ -96,75 +97,60 @@ def plan_scenes(story, characters):
     return plan
   
   
-def _normalize_character_name(c) -> str:
-    """Convert a character reference to a plain string name, regardless of LLM format."""
-    if isinstance(c, dict):
-        # LLM returned a dict like {"name": "Mia"} or similar — extract any string value
-        return str(next(iter(c.values()), "")).strip()
-    return str(c).strip()
-
-
-def _character_description_to_str(val, _depth: int = 0) -> str:
-    """Recursively flatten a character description (str, dict, or list) into a short readable string."""
-    if _depth > 3:
-        return ""  # prevent runaway recursion
-    if isinstance(val, dict):
-        # Only keep simple string leaf values; skip nested structures beyond depth 1
-        parts = []
-        for k, v in val.items():
-            if isinstance(v, str):
-                parts.append(f"{k}: {v}")
-            elif isinstance(v, (dict, list)):
-                nested = _character_description_to_str(v, _depth + 1)
-                if nested:
-                    parts.append(nested)
-        return ", ".join(parts)
-    if isinstance(val, list):
-        return ", ".join(_character_description_to_str(item, _depth + 1) for item in val if item)
-    return str(val).strip()
-
-
-def _build_image_prompt(plan: dict, scene: dict) -> str:
-    """Build a concise, URL-safe image generation prompt."""
-    style = plan.get("style", "Pixar 3D animation")
-    scene_text = scene.get("text", "")[:200]
-    environment = scene.get("environment", "")[:100]
-
-    # Collect character traits (short)
-    chars_in_scene = scene.get("characters_present", [])
-    char_parts = []
-    for c in chars_in_scene:
-        name = _normalize_character_name(c)
-        desc = plan.get("characters", {}).get(name)
-        if desc:
-            flat = _character_description_to_str(desc)
-            # keep only first 80 chars of each character description
-            char_parts.append(flat[:80])
-
-    char_text = "; ".join(char_parts)
-
-    prompt = f"{style}, children's storybook illustration, cinematic lighting. Scene: {scene_text}. Setting: {environment}."
-    if char_text:
-        prompt += f" Characters: {char_text}."
-
-    # Cap to 400 chars so the URL stays well within limits
-    return prompt[:400]
-
-
 def generate_scene_image(plan, scene, i, seed):
 
-    prompt = _build_image_prompt(plan, scene)
-    print(f"[PROMPT] Scene {i}: {prompt}")
+    chars = []
+
+    for c in scene["characters_present"]:
+        if c in plan["characters"]:
+            chars.append(plan["characters"][c])
+
+    flattened = []
+    for val in chars:
+        if isinstance(val, dict):
+            flattened.append(", ".join(f"{k}: {v}" for k, v in val.items()))
+        else:
+            flattened.append(str(val))
+
+    char_text = ", ".join(flattened) if flattened else ""
+
+    prompt = f"""
+    {plan["style"]}
+
+    IMPORTANT:
+    The characters must look EXACTLY the same in every scene.
+
+    Character design:
+    {char_text}
+
+    Scene description:
+    {scene["text"]}
+
+    Environment:
+    {scene["environment"]}
+
+    cinematic lighting
+    children's storybook illustration
+    ultra detailed
+    consistent character design
+    """
+
+    # path = f"output/images/scene_{i}.jpg"
 
     try:
+
         image = hf.text_to_image(
             prompt,
             model="black-forest-labs/FLUX.1-schnell",
             seed=seed
         )
-    except Exception as e:
-        print(f"[ERROR] Image generation failed for scene {i}: {e}")
-        image = Image.new("RGB", (1024, 1024), "black")
+
+        # image.save(path)
+
+    except Exception:
+
+        image = Image.new("RGB",(1024,1024),"black")
+        # img.save(path)
 
     return image
 
@@ -178,21 +164,57 @@ def generate_scene_images(plan):
 
         chars = []
 
-        prompt = _build_image_prompt(plan, scene)
-        print(f"[PROMPT] Scene {i}: {prompt}")
+        for c in scene["characters_present"]:
+            if c in plan["characters"]:
+                chars.append(plan["characters"][c])
+
+        # char_text = ", ".join(chars)
+        flattened = []
+        for val in chars:
+            if isinstance(val, dict):
+                # flatten dict into 'k: v' pieces
+                flattened.append(", ".join(f"{k}: {v}" for k, v in val.items()))
+            else:
+                flattened.append(str(val))
+
+        char_text = ", ".join(flattened) if flattened else ""
+
+        prompt = f"""
+        {plan["style"]}
+
+        IMPORTANT:
+        The characters must look EXACTLY the same in every scene.
+
+        Character design:
+        {char_text}
+
+        Scene description:
+        {scene["text"]}
+
+        Environment:
+        {scene["environment"]}
+
+        cinematic lighting
+        children's storybook illustration
+        ultra detailed
+        consistent character design
+        """
 
         path = f"output/images/scene_{i}.jpg"
 
         try:
+
             image = hf.text_to_image(
                 prompt,
                 model="black-forest-labs/FLUX.1-schnell",
                 seed=seed
             )
+
             image.save(path)
-        except Exception as e:
-            print(f"[ERROR] Image generation failed for scene {i}: {e}")
-            img = Image.new("RGB", (1024, 1024), "black")
+
+        except Exception:
+
+            img = Image.new("RGB",(1024,1024),"black")
             img.save(path)
 
         image_paths.append(path)
